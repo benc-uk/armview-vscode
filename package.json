@@ -1,0 +1,43 @@
+{
+	"name": "armview-vscode",
+	"description": "ARM Viewer for VS Code",
+	"version": "0.0.1",
+	"publisher": "Ben Coleman",
+	"engines": {
+		"vscode": "^1.37.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"onCommand:armView.start",
+		"onWebviewPanel:armView"
+	],
+	"repository": {
+		"type": "git",
+		"url": "zzzzzzzzzzzzzzzzzzzzzz"
+	},
+	"main": "./out/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "armView.start",
+				"title": "Start ARM Viewer",
+				"category": "ARM Viewer"
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"lint": "tslint -p ./",
+		"watch": "tsc -w -p ./"
+	},
+	"dependencies": {},
+	"devDependencies": {
+		"@types/node": "^10.5.2",
+		"tslint": "^5.16.0",
+		"typescript": "^3.5.1",
+		"@types/vscode": "^1.38.0"
+	}
+}
