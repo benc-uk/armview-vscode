@@ -1,0 +1,10 @@
+#mainview {
+  width: 100%;
+  background-color: white;
+  height: 90vh;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+}
+#error {
+  font-size: 150%;
+  color: #bb3144;
+}
