@@ -83,45 +83,53 @@ function addInfo(name, value) {
   else
     $('#infotable').append(`<tr><td>${titleCase(name)}</td><td>${value}</td></tr>`)
 }
-//iconPrefix + ele.data('img') + " " + 
+
 function reLayout() {
+  let bgColor = $('body').css('background-color');
+  let textColor = '#eeeeee';
+  let lineColor = '#666666';
+  let borderColor = $('button').css('background-color');
+  let textColorOutline = bgColor;
+  if($('body').hasClass("vscode-light")) {
+    textColor = '#222222';
+    lineColor = '#cccccc';
+  } 
+
   cy.style().selector('node').style({
-    'background-color': '#FFFFFF',
-    'background-opacity': 1,
+    'background-opacity': 0,
     'label': function( ele ){ return decodeURIComponent(ele.data(labelField)) },
-    'background-image': function( ele ){ return [iconPrefix + "img/arm/default.svg", iconPrefix + ele.data('img')] },
-    'background-image-opacity': [0.99, 0.99],
-    'background-width': ['90%', '90%'],
-    'background-height': ['90%', '90%'],
-    //'background-fit': 'contain',
+    'background-image': function( ele ){ return iconPrefix + ele.data('img') },
+    'background-width': '90%',
+    'background-height': '90%',
     'shape': 'roundrectangle',
     'width': '128',
     'height': '128',
     'border-width': '0',
     'font-family': '"Segoe UI", Arial, Helvetica, sans-serif',
     'font-size': '15vh',
-    'color': '#222222',
+    'color': textColor,
     'text-valign': 'bottom',
     'text-margin-y': '10vh',
     'font-size': '20%',
-    'text-outline-color': '#fff',
+    'text-outline-color': textColorOutline,
     'text-outline-width': '4'
   });
+
   cy.style().selector('node:selected').style({
     'border-width': '4',
-    'border-color': 'rgb(0,120,215)'
+    'border-color': borderColor
   });
 
   cy.style().selector('edge').style({
     'target-arrow-shape': 'triangle',
     'curve-style': 'bezier',
     'width': 6,
-    'line-color': '#cccccc',
+    'line-color': lineColor,
     'arrow-scale': '1.5',
-    'target-arrow-color': '#cccccc'
+    'target-arrow-color': lineColor
   });
 
-  cy.snapToGrid({gridSpacing: 200, lineWidth: 3, drawGrid: true});
+  cy.snapToGrid({gridSpacing: 200, lineWidth: 3, drawGrid: false});
   if(settingSnap)
     cy.snapToGrid('snapOn');
   else  
@@ -131,11 +139,6 @@ function reLayout() {
   cy.resize();
   cy.layout({name: 'breadthfirst'}).run();
   cy.fit();
-}
-
-function savePNG() {
-  let pngBlob = cy.png({output: 'blob', bg: '#FFFFFF'})
-  saveAs(pngBlob, "arm-template.png");
 }
 
 function toggleSnap() {

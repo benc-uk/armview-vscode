@@ -6,26 +6,22 @@
 
 const utils = require('./utils');
 const jsonlint = require('jsonlint');
+import * as path from 'path';
 
 class ARMParser {
   //
   // Load and parse a ARM template from given string
   //
-  constructor(templateJSON) {
+  constructor(templateJSON, path) {
     console.log('### Start parsing template...');
     this.template = null;
     this.error = null;
     this.elements = [];
+    this.extensionPath = path
     
     // Handle BOM characters for those Mac weirdos
     const stripBom = require('strip-bom');
     templateJSON = stripBom(templateJSON);
-    
-    // Special case for Github 404 page
-    if(templateJSON.startsWith("404")) {
-      this.error = `Seems like that template wasn't there (404)`;
-      return;
-    }
 
     // Try to parse JSON file
     try {
@@ -128,16 +124,22 @@ class ARMParser {
         let label = res.type.replace(/^.*\//i, '');
   
         // Set default image, no way to catch 404 on client side :/
-        //let img = `/img/arm/default.png`;
-        //if(require('fs').existsSync(`public/img/arm/${res.type}.png`))
-        let img = `/img/arm/${res.type}.svg`;
+        let img = `/img/arm/default.svg`;
+        if(require('fs').existsSync(path.join(this.extensionPath, `assets/img/arm/${res.type}.svg`)))
+          img = `/img/arm/${res.type}.svg`;
         
         // App Services - Sites & plans can have different icons depending on 'kind'
         if(res.type.includes('microsoft.web') && res.kind) {
-          if(res.kind.toLowerCase() == 'apiapp') img = `/img/arm/microsoft.web/apiapp.png`;
-          if(res.kind.toLowerCase() == 'mobileapp') img = `/img/arm/microsoft.web/mobileapp.png`;
-          if(res.kind.toLowerCase() == 'functionapp') img = `/img/arm/microsoft.web/functionapp.png`;
-          if(res.kind.toLowerCase() == 'linux') img = `/img/arm/microsoft.web/serverfarmslinux.png`;
+          if(res.kind.toLowerCase() == 'apiapp') img = `/img/arm/microsoft.web/apiapp.svg`;
+          if(res.kind.toLowerCase() == 'mobileapp') img = `/img/arm/microsoft.web/mobileapp.svg`;
+          if(res.kind.toLowerCase() == 'functionapp') img = `/img/arm/microsoft.web/functionapp.svg`;
+          if(res.kind.toLowerCase() == 'linux') img = `/img/arm/microsoft.web/serverfarmslinux.svg`;
+        }
+
+        if(res.type.includes('microsoft.compute') && res.properties && res.properties.osProfile) {
+          if(res.properties.osProfile.linuxConfiguration) {
+            img = `/img/arm/microsoft.compute/virtualmachines-linux.svg`;
+          }
         }
   
         // For nested/linked templates
