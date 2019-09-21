@@ -3,21 +3,23 @@ var cy;
 var settingSnap = false;
 var infoShown = false;
 var labelField = 'label';
+
 var iconPrefix
 
 window.addEventListener("resize", function() {
-  cy.resize();
-  cy.fit();
+  if(cy) {
+    cy.resize();
+    cy.fit();
+  }
 });
 
-function startViewer(elements, prefix) {
-  $('#infobox').hide();
-  $('#mainview').show();
-
+function displayData(data, prefix) {
   iconPrefix = prefix
-  
+
+  hideInfo();
+
   cy = cytoscape({ 
-    container: $('#mainview'),
+    container: document.getElementById('mainview'),// $('#mainview'),
     wheelSensitivity: 0.15,
     maxZoom: 5,
     minZoom: 0.2,
@@ -27,8 +29,7 @@ function startViewer(elements, prefix) {
   cy.on('click tap', evt => {
     // Only sensible way I could find to hide the info box when unselecting
     if(!evt.target.length && infoShown) {
-      $('#infobox').toggle("slide")
-      infoShown = false;
+      hideInfo();
     }
   })
 
@@ -43,9 +44,8 @@ function startViewer(elements, prefix) {
       }
       
       // The rest of this is just pulling info from the node's data and showing it in a HTML div & table
-      $('#infoimg').attr('src', evt.target.data('img'));
 
-      $('#infotable').html('');
+      document.getElementById('infotable').innerHTML = ''
       addInfo('Name', evt.target.data('name'));
       addInfo('Type', evt.target.data('type'));
       addInfo('Location', evt.target.data('location'));
@@ -61,14 +61,13 @@ function startViewer(elements, prefix) {
 
       // Now display the info box
       if(!infoShown) {
-        $('#infobox').toggle("slide")
-        infoShown = true;
+        showInfo()
       }      
     }
   })
 
   // Important part! load the elements (nodes) to the view
-  cy.add(elements);
+  cy.add(data);
   reLayout();
 }
 
@@ -78,27 +77,30 @@ function addInfo(name, value) {
   name = decodeURIComponent(name);
   value = decodeURIComponent(value);
 
+  table = document.getElementById('infotable');
+
   if(value.startsWith('http'))
-    $('#infotable').append(`<tr><td>${titleCase(name)}</td><td><a href='/view?url=${encodeURIComponent(value)}' target='_blank'>${value}</a></td></tr>`)
+    table.insertAdjacentHTML('beforeend', `<tr><td>${titleCase(name)}</td><td><a href='/view?url=${encodeURIComponent(value)}' target='_blank'>${value}</a></td></tr>`)
   else
-    $('#infotable').append(`<tr><td>${titleCase(name)}</td><td>${value}</td></tr>`)
+    table.insertAdjacentHTML('beforeend', `<tr><td>${titleCase(name)}</td><td>${value}</td></tr>`);
 }
 
 function reLayout() {
-  let bgColor = $('body').css('background-color');
+  // Set colors in keeping with VS code theme (might be dark or light)
+  let bgColor = window.getComputedStyle(document.getElementsByTagName('body')[0]).getPropertyValue('background-color');
   let textColor = '#eeeeee';
   let lineColor = '#666666';
-  let borderColor = $('button').css('background-color');
+  let borderColor = window.getComputedStyle(document.getElementsByTagName('button')[0]).getPropertyValue('background-color');
   let textColorOutline = bgColor;
-  if($('body').hasClass("vscode-light")) {
+  if(document.getElementsByTagName('body')[0].classList.contains("vscode-light")) {
     textColor = '#222222';
     lineColor = '#cccccc';
   } 
 
   cy.style().selector('node').style({
     'background-opacity': 0,
-    'label': function( ele ){ return decodeURIComponent(ele.data(labelField)) },
-    'background-image': function( ele ){ return iconPrefix + ele.data('img') },
+    'label': node => { return decodeURIComponent(node.data(labelField)) },
+    'background-image': node => { return iconPrefix + node.data('img') },
     'background-width': '90%',
     'background-height': '90%',
     'shape': 'roundrectangle',
@@ -129,11 +131,11 @@ function reLayout() {
     'target-arrow-color': lineColor
   });
 
-  cy.snapToGrid({gridSpacing: 200, lineWidth: 3, drawGrid: false});
-  if(settingSnap)
-    cy.snapToGrid('snapOn');
-  else  
-    cy.snapToGrid('snapOff');
+  // cy.snapToGrid({gridSpacing: 200, lineWidth: 3, drawGrid: false});
+  // if(settingSnap)
+  //   cy.snapToGrid('snapOn');
+  // else  
+  //   cy.snapToGrid('snapOff');
 
   cy.style().update()
   cy.resize();
@@ -145,13 +147,9 @@ function toggleSnap() {
   settingSnap = !settingSnap; 
   if(settingSnap) {
     cy.snapToGrid('snapOn');
-    cy.fit();
-    $('#snapBut').removeClass('btn-primary')
-    $('#snapBut').addClass('btn-info')    
+    cy.fit();  
   } else {  
     cy.snapToGrid('snapOff');
-    $('#snapBut').removeClass('btn-info')
-    $('#snapBut').addClass('btn-primary')    
   }  
 }
 
@@ -169,6 +167,14 @@ function titleCase(str) {
 }
 
 function hideInfo() {
-  $('#infobox').toggle('slide'); 
+  let w = document.getElementById("infobox").offsetWidth
+  if(!w || w <= 0)
+    w = 200
+  document.getElementById('infobox').style.right = `-${w}px`
   infoShown = false;
+}
+
+function showInfo() {
+  document.getElementById('infobox').style.right = "10px"
+  infoShown = true;
 }

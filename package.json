@@ -21,7 +21,7 @@
 		"commands": [
 			{
 				"command": "armView.start",
-				"title": "Start ARM Viewer",
+				"title": "Preview ARM file graphically",
 				"category": "ARM Viewer"
 			}
 		]

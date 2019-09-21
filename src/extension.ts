@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 const ARMParser = require('./lib/arm-parser');
 
-var panel: vscode.WebviewPanel;
+var panel: vscode.WebviewPanel | undefined = undefined;
 var extensionPath: string;
 
 //
@@ -37,24 +37,40 @@ export function activate(context: vscode.ExtensionContext) {
 				dark: vscode.Uri.file(`${extensionPath}/assets/img/icons/eye-dark.svg`),
 				light: vscode.Uri.file(`${extensionPath}/assets/img/icons/eye-light.svg`)
 			}	
+			
 			panel.webview.html = getWebviewContent();
 
-      // Set initial content
-			refreshView();
+			// Handle messages from the webview
+			panel.webview.onDidReceiveMessage(
+				message => {
+					if(message.command == "loaded") {
+						// Set initial content
+						refreshView();
+					}
+				},
+				undefined,
+				context.subscriptions
+			);
 			
 			// Listen for editor changes
 			vscode.workspace.onDidChangeTextDocument(changeEvent => {
-				refreshView();
+				try {
+					refreshView();
+				} catch(err) {}
 			});
 			// Listen for active document changes
 			vscode.window.onDidChangeActiveTextEditor(changeEvent => {
-				refreshView();
+				try {
+					refreshView();
+				} catch(err) {}
 			});
 			 
 			// Update contents based on view state changes
 			panel.onDidChangeViewState(
         e => {
-          refreshView();
+					try {
+						refreshView();
+					} catch(err) {}
         },
         null,
         context.subscriptions
@@ -62,7 +78,9 @@ export function activate(context: vscode.ExtensionContext) {
 	 
 			// Dispose/cleanup
 			panel.onDidDispose(
-        () => {},
+        () => {
+					panel = undefined
+				},
         null,
         context.subscriptions
       );
@@ -74,18 +92,20 @@ export function activate(context: vscode.ExtensionContext) {
 //
 //
 function refreshView() {
+	if(!panel)
+		return
+
 	var editor = vscode.window.activeTextEditor;
 	if(editor) {
 		if(editor.document.languageId != "json") {
-			//vscode.window.showErrorMessage("Current file is not JSON")
 			return;
 		}
 
-		// Parse the template JSON
+		// Parse the source template JSON
 		let templateJSON = editor.document.getText();
     var parser = new ARMParser(templateJSON, extensionPath);    
 
-    // Check for errors
+    // Check for errors - if it's not JSON or a valid ARM template
     if(parser.getError()) {
       panel.webview.postMessage({ command: 'error', payload: parser.getError() })
 		}	else {
@@ -99,11 +119,12 @@ function refreshView() {
 //
 //
 function getWebviewContent() {	
+	if(!panel)
+		return ""
+
 	const mainScriptUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'js', 'main.js')));
 	const mainCss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'css', 'main.css')));
-	const jqueryUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'js', 'jquery.min.js')));
-	const cyMainUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'js', 'cytoscape.min.js')));
-	const cySnapUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'js', 'cytoscape-gridsnap.js')));
+	const cytoscapeUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'js', 'cytoscape.min.js')));
 	const prefix = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets')));
 
   return `<!DOCTYPE html>
@@ -113,20 +134,17 @@ function getWebviewContent() {
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<!--meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline'; script-src * 'unsafe-inline'; style-src * 'unsafe-inline'"-->
 
-		<script src="${jqueryUri}"></script>
-		<script src="${cyMainUri}"></script>
-		<script src="${cySnapUri}"></script>
+		<script src="${cytoscapeUri}"></script>
 		<script src="${mainScriptUri}"></script>
 
 		<link href="${mainCss}" rel="stylesheet" type="text/css">
 
     <title>ARM Viewer</title>
 </head>
-<body>
+<body onload="webviewLoaded()">
 	<div id="error"></div>
 	<div id="buttons">
 		<button onclick="toggleLabels()">LABELS</button>
-		<button onclick="toggleSnap()">SNAP</button>
 		<button onclick="cy.fit()">FIT</button>
 		<button onclick="reLayout()">LAYOUT</button>
 	</div>
@@ -141,14 +159,13 @@ function getWebviewContent() {
 	
 	<script>	
 		window.addEventListener('message', event => {
-			document.getElementById('error').style.display = "none"
-			document.getElementById('mainview').style.display = "block"
-			document.getElementById('buttons').style.display = "block"
-
 			const message = event.data;
 
 			if(message.command == 'refresh') {
-				startViewer(message.payload, "${prefix}");
+				document.getElementById('error').style.display = "none"
+				document.getElementById('mainview').style.display = "block"
+				document.getElementById('buttons').style.display = "block"
+				displayData(message.payload, "${prefix}");
 			}
 
 			if(message.command == 'error') {
@@ -158,6 +175,11 @@ function getWebviewContent() {
 				document.getElementById('buttons').style.display = "none"
 			}			
 		});
+
+		function webviewLoaded() {
+			const vscode = acquireVsCodeApi();
+			vscode.postMessage({command: 'loaded'})
+		}
   </script>
 </body>
 </html>`;

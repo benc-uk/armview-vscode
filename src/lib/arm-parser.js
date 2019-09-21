@@ -130,10 +130,10 @@ class ARMParser {
         
         // App Services - Sites & plans can have different icons depending on 'kind'
         if(res.type.includes('microsoft.web') && res.kind) {
-          if(res.kind.toLowerCase() == 'apiapp') img = `/img/arm/microsoft.web/apiapp.svg`;
-          if(res.kind.toLowerCase() == 'mobileapp') img = `/img/arm/microsoft.web/mobileapp.svg`;
-          if(res.kind.toLowerCase() == 'functionapp') img = `/img/arm/microsoft.web/functionapp.svg`;
-          if(res.kind.toLowerCase() == 'linux') img = `/img/arm/microsoft.web/serverfarmslinux.svg`;
+          if(res.kind.toLowerCase().includes('api')) img = `/img/arm/microsoft.web/apiapp.svg`;
+          if(res.kind.toLowerCase().includes('mobile')) img = `/img/arm/microsoft.web/mobileapp.svg`;
+          if(res.kind.toLowerCase().includes('function')) img = `/img/arm/microsoft.web/functionapp.svg`;
+          if(res.kind.toLowerCase().includes('linux')) img = `/img/arm/microsoft.web/serverfarmslinux.svg`;
         }
 
         if(res.type.includes('microsoft.compute') && res.properties && res.properties.osProfile) {
