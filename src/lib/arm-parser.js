@@ -129,11 +129,16 @@ class ARMParser {
           img = `/img/arm/${res.type}.svg`;
         
         // App Services - Sites & plans can have different icons depending on 'kind'
-        if(res.type.includes('microsoft.web') && res.kind) {
+        if(res.kind && res.type.includes('microsoft.web')) {
           if(res.kind.toLowerCase().includes('api')) img = `/img/arm/microsoft.web/apiapp.svg`;
           if(res.kind.toLowerCase().includes('mobile')) img = `/img/arm/microsoft.web/mobileapp.svg`;
           if(res.kind.toLowerCase().includes('function')) img = `/img/arm/microsoft.web/functionapp.svg`;
           if(res.kind.toLowerCase().includes('linux')) img = `/img/arm/microsoft.web/serverfarmslinux.svg`;
+        }
+        
+        // Event grid subscriptions can sit under many resource types
+        if(res.type.includes('eventsubscriptions')) {
+          img = `/img/arm/microsoft.eventgrid/eventsubscriptions.svg`;
         }
 
         if(res.type.includes('microsoft.compute') && res.properties && res.properties.osProfile) {

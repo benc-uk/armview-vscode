@@ -1,11 +1,9 @@
 width="50" height="50" 
 
-event grid
-virtal  wan
-azure firewall
-frontdoor
-bastion
 databricks
 az ml
 ise
 priv dns
+maps
+migreate
+blueprints
