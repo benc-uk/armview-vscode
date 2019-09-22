@@ -9,11 +9,25 @@
 		"name": "Ben Coleman",
 		"email": "ben.coleman@microsoft.com"
 	},
-	"keywords": ["arm", "template", "preview", "visualizer", "map", "viewer", "azure"],
+	"keywords": [
+		"arm",
+		"template",
+		"preview",
+		"visualizer",
+		"map",
+		"viewer",
+		"azure"
+	],
 	"engines": {
 		"vscode": "^1.38.0"
 	},
-	"categories": ["Programming Languages", "Linters", "Formatters", "Other", "Azure"],
+	"categories": [
+		"Programming Languages",
+		"Linters",
+		"Formatters",
+		"Other",
+		"Azure"
+	],
 	"activationEvents": [
 		"onCommand:armView.start"
 	],
