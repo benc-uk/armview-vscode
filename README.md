@@ -2,7 +2,7 @@
 [![Version](https://vsmarketplacebadge.apphb.com/version/bencoleman.armview.svg)](https://marketplace.visualstudio.com/items?itemName=bencoleman.armview) 
 ![Installs](https://vsmarketplacebadge.apphb.com/installs-short/bencoleman.armview.svg)
 
-This extension displays a graphical preview of Azure Resource Manager (ARM) templates. The view will show all resources with the offical Azure icons and also linkage between the resources
+This extension displays a graphical preview of Azure Resource Manager (ARM) templates. The view will show all resources with the official Azure icons and also linkage between the resources. Uses the [Cytoscape.js library](http://js.cytoscape.org/)
 
 ![s1](assets/readme/screen1.png)
 
@@ -11,21 +11,26 @@ This extension displays a graphical preview of Azure Resource Manager (ARM) temp
 ![s3](assets/readme/screen3.png)
 
 # Usage
-- Open a ARM template JSON file, make sure the editor is focused/active
-- Open the VS Code command pallete with `Ctrl+Shift+P` or `⇧⌘P` on a mac
-- Start typing `ARM Viewer`
-- Pick `ARM Viewer: Preview ARM file graphically` from the list
+- Open a ARM template JSON file, and ensure it is active/focused
+  - Click the eye symbol in the top right of the editor tab bar
+- Or:
+  - Open the VS Code command pallet with `Ctrl+Shift+P` or `⇧⌘P` on a mac
+  - Start typing `ARM Viewer`
+  - Pick `ARM Viewer: Preview ARM file graphically` from the list
+- Or:
+  - Use keyboard shortcut `Ctrl+Alt+Q`
+
 
 ## Features
-- Click on a resource to show popup infobox for that resource
+- Click on a resource to show popup 'infobox' for that resource
 - Click 'LABELS' button to toggle labels from resource names to resource types
 - Click 'FIT' button to refit the view to the best zoom level
-- Click 'LAYOUT' button to relayout icons in default way
+- Click 'LAYOUT' button to re-layout icons in default way
 
 # Notes
-This is a port of a older project which was a standalone Node.js webapp https://github.com/benc-uk/azure-armviewer
+This is a port of a older *ARM Viewer* project, which was a standalone Node.js webapp https://github.com/benc-uk/azure-armviewer
 
-This project was inspired by the old ARMViz tool. ARMViz sadly seems to have been abandoned, it often has problems displaying templates, and personally I was never that pleased with the look of the output. These are some of the reasons why I created this project
+This project was inspired by the old ARMViz tool. ARMViz sadly seems to have been abandoned, it often has problems displaying templates, and personally I found the appearance of the output looked poor, and was hard to read. These are some of the reasons why I created this project
 
 # Limitations & Known Issues 
 - The code attempts to find the links (`dependsOn` relationships) between ARM resources, however due to the *many* subtle and complex ways these relationships can be defined & expressed, certain links may not be picked up & displayed.

@@ -2,7 +2,7 @@
 	"name": "armview",
 	"displayName": "ARM Template Viewer",
 	"description": "Graphically display ARM templates in an interactive map view",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"icon": "assets/img/icons/main.png",
 	"publisher": "bencoleman",
 	"author": {
@@ -41,9 +41,44 @@
 			{
 				"command": "armView.start",
 				"title": "Preview ARM file graphically",
-				"category": "ARM Viewer"
+				"category": "ARM Viewer",
+				"icon": {
+					"light": "./assets/img/icons/eye-light.svg",
+					"dark": "./assets/img/icons/eye-dark.svg"
+				}				
 			}
-		]
+		],
+		"menus": {
+			"editor/title": [
+				{
+					"command": "armView.start",
+					"when": "editorLangId == json",
+					"group": "navigation"
+				}
+			],
+			"editor/title/context": [
+				{
+					"command": "armView.start",
+					"when": "editorLangId == json",
+					"group": "navigation"
+				}
+			],			
+			"commandPalette": [
+				{
+					"command": "armView.start",
+					"when": "editorLangId == json",
+					"group": "navigation"
+				}
+			]
+		},
+		"keybindings": [
+      {
+        "command": "armView.start",
+        "key": "ctrl+alt+q",
+        "mac": "cmd+alt+q",
+        "when": "editorLangId == json"
+      }
+    ]
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",

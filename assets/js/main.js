@@ -12,20 +12,21 @@ var labelField = 'label';
 
 var iconPrefix
 
-window.addEventListener("resize", function() {
+window.addEventListener("resize", function() { 
   if(cy) {
     cy.resize();
     cy.fit();
   }
 });
 
-function displayData(data, prefix) {
+
+function init(prefix) {
   iconPrefix = prefix
 
   hideInfo();
 
   cy = cytoscape({ 
-    container: document.getElementById('mainview'),// $('#mainview'),
+    container: document.getElementById('mainview'),
     wheelSensitivity: 0.15,
     maxZoom: 5,
     minZoom: 0.2,
@@ -50,6 +51,7 @@ function displayData(data, prefix) {
       }
       
       // The rest of this is just pulling info from the node's data and showing it in a HTML div & table
+      document.getElementById('infoimg').setAttribute('src', iconPrefix + evt.target.data('img'));
 
       document.getElementById('infotable').innerHTML = ''
       addInfo('Name', evt.target.data('name'));
@@ -72,7 +74,15 @@ function displayData(data, prefix) {
     }
   })
 
-  // Important part! load the elements (nodes) to the view
+  // Send message that we're initialized and ready for data
+  const vscode = acquireVsCodeApi();
+  vscode.postMessage({ command: 'initialized' })  
+  console.log("armview: Initialization complete");
+}
+
+function displayData(data) {
+  console.log("armview: Displaying data");
+  cy.remove('*');
   cy.add(data);
   reLayout();
 }

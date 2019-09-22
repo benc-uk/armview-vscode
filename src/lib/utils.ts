@@ -6,7 +6,7 @@
 //
 
 // Simple random ID generator, good enough, with len=6 it's a 1:56 in billion chance of a clash
-function makeId(len: number) {
+export function makeId(len: number) {
   var text = "";
   var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
@@ -18,7 +18,7 @@ function makeId(len: number) {
 
 
 // Hashing function
-function hashCode(str: string) {
+export function hashCode(str: string) {
   var hash = 0, i, chr;
   if (str.length === 0) return hash;
   for (i = 0; i < str.length; i++) {
@@ -32,7 +32,7 @@ function hashCode(str: string) {
 
 // Parsing non-nested commas in a param list is IMPOSSIBLE WITH A REGEX
 // This is a brute force parser for comma separated param lists
-function parseParams(paramString: string) {
+export function parseParams(paramString: string) {
   var depth = 0;
   var parts = [];
   var lastSplit = 0;
@@ -53,7 +53,7 @@ function parseParams(paramString: string) {
 
 
 // Convert string to Tile Case
-function titleCase(str: string) {
+export function titleCase(str: string) {
   return str.toLowerCase().split(' ').map(function(word: string) {
     return word.replace(word[0], word[0].toUpperCase());
   }).join(' ');
@@ -61,14 +61,8 @@ function titleCase(str: string) {
 
 
 // Custom string encoder which also encodes single quotes
-function encode(str: string) {
+export function encode(str: string) {
   let temp = encodeURIComponent(str);
   temp = temp.replace(/'/g, '%27');
   return temp;
 }
-
-module.exports.makeId = makeId;
-module.exports.hashCode = hashCode;
-module.exports.parseParams = parseParams;
-module.exports.titleCase = titleCase;
-module.exports.encode = encode;

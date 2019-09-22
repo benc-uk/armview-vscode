@@ -10,6 +10,7 @@ import ARMParser from './lib/arm-parser';
 
 var panel: vscode.WebviewPanel | undefined = undefined;
 var extensionPath: string;
+var editor: vscode.TextEditor;
 
 //
 // Main extension activation
@@ -20,6 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('armView.start', () => {
 			// Check for open editors that are showing JSON
+			// These are safe guards, the `when` clauses in package.json should prevent this
 			if(!vscode.window.activeTextEditor) {
 				vscode.window.showErrorMessage("No editor active, open a ARM template JSON file in the editor")
 				return;
@@ -29,6 +31,15 @@ export function activate(context: vscode.ExtensionContext) {
 					return;
 				}
 			}
+			
+			// Store the active editor at start
+			editor = vscode.window.activeTextEditor
+
+			if (panel) {
+				// If we already have a panel, show it
+				panel.reveal();
+				return;
+			} 
 
 			// Create the panel (held globally)
       panel = vscode.window.createWebviewPanel(
@@ -49,28 +60,39 @@ export function activate(context: vscode.ExtensionContext) {
 			
 			// Load the webview HTML/JS
 			panel.webview.html = getWebviewContent();
-
-			// Initial load of content
-			refreshView();
 			
-			// Listen for editor changes
+			// Listen for active document changes, i.e. user typing
 			vscode.workspace.onDidChangeTextDocument(event => {
 				//console.log("### onDidChangeTextDocument");
 				try {
 					refreshView();
 				} catch(err) {}
 			});
-			// Listen for active document changes
+
+			// Listen for active editor changes
 			vscode.window.onDidChangeActiveTextEditor(event => {
 				//console.log("### onDidChangeActiveTextEditor");
 				try {
-					refreshView();
+					// Switch editor and refresh
+					if(vscode.window.activeTextEditor) {
+						editor = vscode.window.activeTextEditor;
+						refreshView();
+					}
 				} catch(err) {}
 			});
-			 
-			// Update contents based on view state changes - reserv
-			//panel.onDidChangeViewState(event => {}, null, context.subscriptions);
-	 
+
+      // Handle messages from the webview
+      panel.webview.onDidReceiveMessage(
+        message => {
+          if (message.command == 'initialized') {
+						// Initial load of content, done at startup
+						refreshView();
+          }
+        },
+        undefined,
+        context.subscriptions
+			);
+
 			// Dispose/cleanup
 			panel.onDidDispose(
         () => {
@@ -90,7 +112,6 @@ function refreshView() {
 	if(!panel)
 		return
 
-	var editor = vscode.window.activeTextEditor;
 	if(editor) {
 		// Skip non-JSON
 		if(editor.document.languageId != "json") {
@@ -108,6 +129,8 @@ function refreshView() {
 			// Send result as message
 			panel.webview.postMessage({ command: 'refresh', payload: parser.getResult() });
 		}
+	} else {
+		vscode.window.showErrorMessage("No editor active, open a ARM template JSON file in the editor")
 	}
 };
 
@@ -123,19 +146,20 @@ function getWebviewContent() {
 	const cytoscapeUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'js', 'cytoscape.min.js')));
 	const prefix = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets')));
 
-  return `<!DOCTYPE html>
+	return `
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<!--meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline'; script-src * 'unsafe-inline'; style-src * 'unsafe-inline'"-->
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<!--meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline'; script-src * 'unsafe-inline'; style-src * 'unsafe-inline'"-->
 
-		<script src="${cytoscapeUri}"></script>
-		<script src="${mainScriptUri}"></script>
+	<script src="${cytoscapeUri}"></script>
+	<script src="${mainScriptUri}"></script>
 
-		<link href="${mainCss}" rel="stylesheet" type="text/css">
+	<link href="${mainCss}" rel="stylesheet" type="text/css">
 
-    <title>ARM Viewer</title>
+	<title>ARM Viewer</title>
 </head>
 <body>
 	<div id="error"></div>
@@ -146,7 +170,8 @@ function getWebviewContent() {
 	</div>
 	<div id="mainview"></div>
 
-  <div id="infobox">
+	<div id="infobox">
+	  <div class="panel-heading" onclick="hideInfo()"><img id="infoimg" src=''/> &nbsp; Resource Details</div>
     <div class="panel-body">
       <table id="infotable">    
       </table>
@@ -158,11 +183,10 @@ function getWebviewContent() {
 			const message = event.data;
 
 			if(message.command == 'refresh') {
-				//console.log("### webview recv refresh command");
 				document.getElementById('error').style.display = "none"
 				document.getElementById('mainview').style.display = "block"
 				document.getElementById('buttons').style.display = "block"
-				displayData(message.payload, "${prefix}");
+				displayData(message.payload);
 			}
 
 			if(message.command == 'error') {
@@ -172,6 +196,8 @@ function getWebviewContent() {
 				document.getElementById('buttons').style.display = "none"
 			}			
 		});
+
+		init("${prefix}")
   </script>
 </body>
 </html>`;

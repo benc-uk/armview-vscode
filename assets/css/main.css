@@ -32,7 +32,7 @@ button:hover {
   display: block;
   font-size: 90%;
   border: 2px solid var(--vscode-button-background);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 35px rgba(0, 0, 0, 0.7);
   position: absolute;
   z-index: 8000;
   bottom: 10px;
@@ -44,6 +44,10 @@ button:hover {
   overflow: hidden;
   background-color: var(--vscode-notifications-background);
   transition: all 0.4s ease-in
+}
+
+#infotable {
+  padding: 5px;
 }
 
 #infobox td:first-child {
@@ -65,4 +69,19 @@ button:hover {
   font-size: 120%;
   font-weight: bold;
   cursor: pointer;
+}
+
+.panel-heading {
+  background-color: var(--vscode-selection-background);
+  font-size: 130%;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 4px;
+  margin: auto;
+  vertical-align: middle;
+}
+
+#infobox .panel-heading img {
+  height: 25px;
+  vertical-align: middle;
 }

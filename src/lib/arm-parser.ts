@@ -2,12 +2,12 @@
 // arm-parser.ts - ARM Parser 
 // Class to parse ARM templates and return a set of elements for rendering with Cytoscape
 // Ben Coleman, 2017
-// Modified & updated for VS Code extension. Cnverted (crudely) to TypeScript, Oct 2019
+// Modified & updated for VS Code extension. Converted (crudely) to TypeScript, Oct 2019
 //
 
-const utils = require('./utils');
-const jsonlint = require('jsonlint');
+import * as utils from './utils'
 import * as path from 'path';
+const jsonlint = require('jsonlint');
 
 class ARMParser {
   template: any;
@@ -24,7 +24,7 @@ class ARMParser {
     this.elements = [];
     this.extensionPath = path
     
-    // Handle BOM characters for those Mac weirdos
+    // Handle BOM characters for those mac owning weirdos
     const stripBom = require('strip-bom');
     templateJSON = stripBom(templateJSON);
 
@@ -32,7 +32,6 @@ class ARMParser {
     try {
       // Switched to jsonlint for more meaningful error messages
       this.template = jsonlint.parse(templateJSON)
-      //this.template = JSON.parse(templateJSON);
     } catch(e) {
       this.error = e.message;
       return;
@@ -68,12 +67,10 @@ class ARMParser {
     return this.error;
   }
 
-  // ***** All methods from here are considered private *****
-
   //
   // Pre-parser function, does some work to make life easier for the main parser 
   //
-  _preProcess(resources: any[], parentRes: any) {
+  private _preProcess(resources: any[], parentRes: any) {
     resources.forEach(res => {
       try {
         // Resolve and eval resource name
@@ -119,7 +116,7 @@ class ARMParser {
   //
   // Main function to parse a resource, this will recurse into nested resources
   //
-  _processResources(resources: any[]) {
+  private _processResources(resources: any[]) {
     resources.forEach(res => {
       try {
         let name = res.name;
@@ -242,7 +239,7 @@ class ARMParser {
   //
   // Create a link element between resources
   //
-  _addLink(r1: any, r2: any) {
+  private _addLink(r1: any, r2: any) {
     this.elements.push({
       group: "edges",
       data: {
@@ -256,7 +253,7 @@ class ARMParser {
   //
   // Main ARM expression parser, attempts to evaluate and resolve ARM expressions into strings
   //
-  _evalExpression(exp: string): any {
+  private _evalExpression(exp: string): any {
     exp = exp.trim();
 
     // catch special cases, with referenced properties, e.g. resourceGroup().location
@@ -333,7 +330,7 @@ class ARMParser {
   //
   // Locate a resource by resource id
   //
-  _findResource(id: string) {
+  private _findResource(id: string) {
     return this.template.resources.find((res: any) => {
       // Simple match on substring is possible after 
       // fully resolving names & types
@@ -344,7 +341,7 @@ class ARMParser {
   //
   // Emulate the ARM function `variables()` to reference template variables
   //
-  _funcVariables(varName: string) {
+  private _funcVariables(varName: string) {
     if(!this.template.variables) return "variables-missing";
     let findKey = Object.keys(this.template.variables).find(key => varName == key);
     if(findKey) {
@@ -367,16 +364,15 @@ class ARMParser {
   //
   // Emulate the ARM function `uniqueString()` 
   //
-  _funcUniquestring(baseStr: string): string {
-    let out = utils.hashCode(baseStr);
-    out = new Buffer(`${out}`).toString('base64');
-    return out;
+  private _funcUniquestring(baseStr: string): string {
+    let hash = utils.hashCode(baseStr);
+    return Buffer.from(`${hash}`).toString('base64').substr(0, 14);
   }
 
   //
   // Emulate the ARM function `concat()` 
   //
-  _funcConcat(funcParams: any, joinStr: string) {
+  private _funcConcat(funcParams: string, joinStr: string) {
     let paramList = utils.parseParams(funcParams);
 
     var res = "";
@@ -391,7 +387,7 @@ class ARMParser {
   //
   // Emulate the ARM function `replace()` 
   //
-  _funcReplace(funcParams: any) {
+  private _funcReplace(funcParams: string) {
     let paramList = utils.parseParams(funcParams);
     var input = this._evalExpression(paramList[0]);
     var search = this._evalExpression(paramList[1]);
@@ -403,21 +399,21 @@ class ARMParser {
   //
   // Emulate the ARM function `toLower()` 
   //
-  _funcToLower(funcParams: any) {
+  private _funcToLower(funcParams: string) {
     return this._evalExpression(funcParams).toLowerCase();
   }
 
   //
   // Emulate the ARM function `toUpper()` 
   //
-  _funcToUpper(funcParams: any) {
+  private _funcToUpper(funcParams: string) {
     return this._evalExpression(funcParams).toUpperCase();
   }
 
   //
   // Emulate the ARM function `substring()` 
   //
-  _funcSubstring(funcParams: any) {
+  private _funcSubstring(funcParams: string) {
     let paramList = utils.parseParams(funcParams);
     var str = this._evalExpression(paramList[0]);
     var start = this._evalExpression(paramList[1]);
@@ -428,4 +424,3 @@ class ARMParser {
 }
 
 export default ARMParser;
-//module.exports = ARMParser;
