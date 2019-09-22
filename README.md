@@ -2,7 +2,9 @@
 Display / preview Azure Resource Manager (ARM) templates in a graphical way. The view will show all resources with the canonical Azure icons and also linkage between the resources
 
 ![s1](assets/readme/screen1.png)
+
 ![s2](assets/readme/screen2.png)
+
 ![s3](assets/readme/screen3.png)
 
 # Usage
