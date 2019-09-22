@@ -1,3 +1,9 @@
+//
+// ARM Viewer - VS Code Extension
+// Ben Coleman, 2019
+// Client script runs inside webview and renders parsed results in a Cytoscape panel
+//
+
 // Globals
 var cy;
 var settingSnap = false;

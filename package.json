@@ -1,14 +1,19 @@
 {
-	"name": "armview-vscode",
-	"description": "ARM Viewer and visualizer for VS Code",
-	"version": "0.0.1",
-	"publisher": "Ben Coleman",
-	"engines": {
-		"vscode": "^1.37.0"
+	"name": "armview",
+	"displayName": "ARM Template Viewer",
+	"description": "Graphically display ARM templates in an interacive map view",
+	"version": "0.0.2",
+	"icon": "assets/img/icons/main.png",
+	"publisher": "bencoleman",
+	"author": {
+		"name": "Ben Coleman",
+		"email": "ben.coleman@microsoft.com"
 	},
-	"categories": [
-		"Other"
-	],
+	"keywords": ["arm", "template", "preview", "visualizer", "map", "viewer", "azure"],
+	"engines": {
+		"vscode": "^1.38.0"
+	},
+	"categories": ["Programming Languages", "Linters", "Formatters", "Other", "Azure"],
 	"activationEvents": [
 		"onCommand:armView.start"
 	],
@@ -32,7 +37,10 @@
 		"lint": "tslint -p ./",
 		"watch": "tsc -w -p ./"
 	},
-	"dependencies": {},
+	"dependencies": {
+		"jsonlint": "^1.6.3",
+		"strip-bom": "^3.0.0"
+	},
 	"devDependencies": {
 		"@types/node": "^10.5.2",
 		"tslint": "^5.16.0",

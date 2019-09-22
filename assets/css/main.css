@@ -9,7 +9,8 @@ body{
 
 #error {
   font-size: 150%;
-  color: #bb3144;
+  color: var(--vscode-errorForeground);
+  font-family: var(--vscode-editor-font-family);
 }
 
 button {
@@ -30,7 +31,7 @@ button:hover {
 #infobox {
   display: block;
   font-size: 90%;
-  border: 2px solid var(--vscode-notificationCenter-border);
+  border: 2px solid var(--vscode-button-background);
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
   position: absolute;
   z-index: 8000;

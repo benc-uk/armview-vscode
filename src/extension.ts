@@ -1,18 +1,25 @@
+//
+// ARM Viewer - VS Code Extension
+// Ben Coleman, 2019
+// Main Extension script
+//
+
 import * as vscode from 'vscode';
 import * as path from 'path';
-const ARMParser = require('./lib/arm-parser');
+import ARMParser from './lib/arm-parser';
 
 var panel: vscode.WebviewPanel | undefined = undefined;
 var extensionPath: string;
 
 //
-//
+// Main extension activation
 //
 export function activate(context: vscode.ExtensionContext) {
 	extensionPath = context.extensionPath
 
   context.subscriptions.push(
     vscode.commands.registerCommand('armView.start', () => {
+			// Check for open editors that are showing JSON
 			if(!vscode.window.activeTextEditor) {
 				vscode.window.showErrorMessage("No editor active, open a ARM template JSON file in the editor")
 				return;
@@ -23,6 +30,7 @@ export function activate(context: vscode.ExtensionContext) {
 				}
 			}
 
+			// Create the panel (held globally)
       panel = vscode.window.createWebviewPanel(
         'armViewer',
         'ARM Viewer',
@@ -33,48 +41,35 @@ export function activate(context: vscode.ExtensionContext) {
 				}
 			);
 
+			// Give panel a custom icon
 			panel.iconPath = { 
 				dark: vscode.Uri.file(`${extensionPath}/assets/img/icons/eye-dark.svg`),
 				light: vscode.Uri.file(`${extensionPath}/assets/img/icons/eye-light.svg`)
 			}	
 			
+			// Load the webview HTML/JS
 			panel.webview.html = getWebviewContent();
 
-			// Handle messages from the webview
-			panel.webview.onDidReceiveMessage(
-				message => {
-					if(message.command == "loaded") {
-						// Set initial content
-						refreshView();
-					}
-				},
-				undefined,
-				context.subscriptions
-			);
+			// Initial load of content
+			refreshView();
 			
 			// Listen for editor changes
-			vscode.workspace.onDidChangeTextDocument(changeEvent => {
+			vscode.workspace.onDidChangeTextDocument(event => {
+				//console.log("### onDidChangeTextDocument");
 				try {
 					refreshView();
 				} catch(err) {}
 			});
 			// Listen for active document changes
-			vscode.window.onDidChangeActiveTextEditor(changeEvent => {
+			vscode.window.onDidChangeActiveTextEditor(event => {
+				//console.log("### onDidChangeActiveTextEditor");
 				try {
 					refreshView();
 				} catch(err) {}
 			});
 			 
-			// Update contents based on view state changes
-			panel.onDidChangeViewState(
-        e => {
-					try {
-						refreshView();
-					} catch(err) {}
-        },
-        null,
-        context.subscriptions
-      );
+			// Update contents based on view state changes - reserv
+			//panel.onDidChangeViewState(event => {}, null, context.subscriptions);
 	 
 			// Dispose/cleanup
 			panel.onDidDispose(
@@ -89,7 +84,7 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 //
-//
+// Refresh contents of the view
 //
 function refreshView() {
 	if(!panel)
@@ -97,6 +92,7 @@ function refreshView() {
 
 	var editor = vscode.window.activeTextEditor;
 	if(editor) {
+		// Skip non-JSON
 		if(editor.document.languageId != "json") {
 			return;
 		}
@@ -116,7 +112,7 @@ function refreshView() {
 };
 
 //
-//
+// Initialise the contents of the webview - called at startup
 //
 function getWebviewContent() {	
 	if(!panel)
@@ -141,7 +137,7 @@ function getWebviewContent() {
 
     <title>ARM Viewer</title>
 </head>
-<body onload="webviewLoaded()">
+<body>
 	<div id="error"></div>
 	<div id="buttons">
 		<button onclick="toggleLabels()">LABELS</button>
@@ -162,6 +158,7 @@ function getWebviewContent() {
 			const message = event.data;
 
 			if(message.command == 'refresh') {
+				//console.log("### webview recv refresh command");
 				document.getElementById('error').style.display = "none"
 				document.getElementById('mainview').style.display = "block"
 				document.getElementById('buttons').style.display = "block"
@@ -175,11 +172,6 @@ function getWebviewContent() {
 				document.getElementById('buttons').style.display = "none"
 			}			
 		});
-
-		function webviewLoaded() {
-			const vscode = acquireVsCodeApi();
-			vscode.postMessage({command: 'loaded'})
-		}
   </script>
 </body>
 </html>`;

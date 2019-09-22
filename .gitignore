@@ -62,3 +62,4 @@ typings/
 
 # VScode and TS specific
 out/
+*.vsix
