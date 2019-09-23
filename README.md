@@ -13,6 +13,7 @@ This extension displays a graphical preview of Azure Resource Manager (ARM) temp
 # Usage
 - Open a ARM template JSON file, and ensure it is active/focused
   - Click the eye symbol in the top right of the editor tab bar
+  - ![toolbar](assets/readme/icon.png)
 - Or:
   - Open the VS Code command pallet with `Ctrl+Shift+P` or `⇧⌘P` on a mac
   - Start typing `ARM Viewer`

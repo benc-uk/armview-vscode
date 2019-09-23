@@ -174,8 +174,8 @@ function refreshView() {
 // Initialise the contents of the webview - called at startup
 //
 function getWebviewContent() {	
-	let wsname = "undefined";
-	if(vscode.workspace.name) wsname = vscode.workspace.name;
+	// Send telemetry for activation 
+	let wsname: string = vscode.workspace.name || "unknown";
 	reporter.sendTelemetryEvent('activated', {'workspace': wsname});
 
 	if(!panel)
@@ -208,7 +208,12 @@ function getWebviewContent() {
 	<title>ARM Viewer</title>
 </head>
 <body>
-	<div id="error"></div>
+	<div id="error">
+		<div id="errortitle">⚠️ Parser Error</div>
+		<div id="errormsg">
+		</div>
+	</div>
+
 	<div id="buttons">
 		<button onclick="toggleLabels()">LABELS</button>
 		<button onclick="cy.fit()">FIT</button>
@@ -226,6 +231,7 @@ function getWebviewContent() {
 	</div>
 	
 	<script>	
+		// Message handler in webview, messages are sent by extension
 		window.addEventListener('message', event => {
 			const message = event.data;
 
@@ -237,7 +243,7 @@ function getWebviewContent() {
 			}
 
 			if(message.command == 'error') {
-				document.getElementById('error').innerHTML = message.payload
+				document.getElementById('errormsg').innerHTML = message.payload
 				document.getElementById('error').style.display = "block"
 				document.getElementById('mainview').style.display = "none"
 				document.getElementById('buttons').style.display = "none"

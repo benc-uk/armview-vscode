@@ -8,9 +8,29 @@ body{
 }
 
 #error {
+  display: none;
+  font-size: 120%;
+  margin: 0 auto;
+  margin-top: 50%;
+  border: 2px solid var(--vscode-button-background);
+  box-shadow: 0 0 35px rgba(0, 0, 0, 0.7);
+}
+
+#errortitle {
+  background-color: var(--vscode-selection-background);
+  font-weight: bold;
+  font-size: 150%;
+  padding: 8px;
+}
+
+#errormsg {
   font-size: 120%;
   color: var(--vscode-errorForeground);
   font-family: var(--vscode-editor-font-family);
+  white-space: pre-wrap;
+  word-break: break-all;
+  word-wrap: break-word;
+  padding: 10px;
 }
 
 button {

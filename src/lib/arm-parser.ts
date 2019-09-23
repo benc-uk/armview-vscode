@@ -8,6 +8,7 @@
 import * as utils from './utils'
 import * as path from 'path';
 import TelemetryReporter from 'vscode-extension-telemetry';
+import { ESPIPE } from 'constants';
 const jsonlint = require('jsonlint');
 
 class ARMParser {
@@ -43,7 +44,7 @@ class ARMParser {
 
     // Some simple ARM validation
     if(!this.template.resources || !this.template.$schema) {
-      this.error = `That's valid JSON, but I don't think that's a valid ARM template`;
+      this.error = `File doesn't appear to be an ARM template, but is valid JSON`;
       return;      
     }
         
@@ -298,6 +299,10 @@ class ARMParser {
   // Main ARM expression parser, attempts to evaluate and resolve ARM expressions into strings
   //
   private _evalExpression(exp: string): any {
+    // Catch some rare errors where non-strings are parsed
+    if(typeof exp != "string")
+      return exp;
+
     exp = exp.trim();
 
     // catch special cases, with referenced properties, e.g. resourceGroup().location

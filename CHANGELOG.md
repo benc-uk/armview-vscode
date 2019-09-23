@@ -1,3 +1,7 @@
+## 0.0.6
+- Fix for SKU evaluation error (exp.trim)
+- Nicer error messages
+  
 ## 0.0.5
 - Snap to grid added
 - Telemetry tracking added
