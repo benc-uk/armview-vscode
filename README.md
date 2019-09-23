@@ -20,17 +20,19 @@ This extension displays a graphical preview of Azure Resource Manager (ARM) temp
 - Or:
   - Use keyboard shortcut `Ctrl+Alt+Q`
 
-
 ## Features
 - Click on a resource to show popup 'infobox' for that resource
 - Click 'LABELS' button to toggle labels from resource names to resource types
 - Click 'FIT' button to refit the view to the best zoom level
+- Click 'SNAP' button to toggle snap to grid mode on/off
 - Click 'LAYOUT' button to re-layout icons in default way
+
 
 # Notes
 This is a port of a older *ARM Viewer* project, which was a standalone Node.js webapp https://github.com/benc-uk/azure-armviewer
 
 This project was inspired by the old ARMViz tool. ARMViz sadly seems to have been abandoned, it often has problems displaying templates, and personally I found the appearance of the output looked poor, and was hard to read. These are some of the reasons why I created this project
+
 
 # Limitations & Known Issues 
 - The code attempts to find the links (`dependsOn` relationships) between ARM resources, however due to the *many* subtle and complex ways these relationships can be defined & expressed, certain links may not be picked up & displayed.
@@ -38,9 +40,9 @@ This project was inspired by the old ARMViz tool. ARMViz sadly seems to have bee
 - Resolving names & other properties for resources is attempted, but due to programmatic way these are generally defined with ARM functions and expressions, full name resolution is not always possible
 - Templates using the loop functions `copy` & `copyIndex` to create multiple resources will not be rendered correctly due to limitations on evaluating the dynamic iterative state of the template     
 
-## Running/Debugging Locally
 
-- Open this example in VS Code 1.25+
+# Running/Debugging Locally
+- Clone/fork repo and open project in VS Code 1.25+
 - `npm install`
 - `npm run watch` or `npm run compile`
 - `F5` to start debugging
