@@ -11,7 +11,7 @@ body{
   display: none;
   font-size: 120%;
   margin: 0 auto;
-  margin-top: 50%;
+  margin-top: 40vh;
   border: 2px solid var(--vscode-button-background);
   box-shadow: 0 0 35px rgba(0, 0, 0, 0.7);
 }
