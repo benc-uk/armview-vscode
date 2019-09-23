@@ -2,7 +2,7 @@
 	"name": "armview",
 	"displayName": "ARM Template Viewer",
 	"description": "Graphically display ARM templates in an interactive map view",
-	"version": "0.0.4",
+	"version": "0.0.5",
 	"icon": "assets/img/icons/main.png",
 	"publisher": "bencoleman",
 	"author": {
@@ -45,7 +45,7 @@
 				"icon": {
 					"light": "./assets/img/icons/eye-light.svg",
 					"dark": "./assets/img/icons/eye-dark.svg"
-				}				
+				}
 			}
 		],
 		"menus": {
@@ -62,7 +62,7 @@
 					"when": "editorLangId == json",
 					"group": "navigation"
 				}
-			],			
+			],
 			"commandPalette": [
 				{
 					"command": "armView.start",
@@ -72,13 +72,13 @@
 			]
 		},
 		"keybindings": [
-      {
-        "command": "armView.start",
-        "key": "ctrl+alt+q",
-        "mac": "cmd+alt+q",
-        "when": "editorLangId == json"
-      }
-    ]
+			{
+				"command": "armView.start",
+				"key": "ctrl+alt+q",
+				"mac": "cmd+alt+q",
+				"when": "editorLangId == json"
+			}
+		]
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
@@ -88,14 +88,16 @@
 	},
 	"dependencies": {
 		"jsonlint": "^1.6.3",
-		"strip-bom": "^3.0.0"
+		"strip-bom": "^3.0.0",
+		"vscode-extension-telemetry": "^0.1.2"
 	},
 	"devDependencies": {
 		"@types/node": "^10.5.2",
-		"tslint": "^5.16.0",
-		"typescript": "^3.5.1",
 		"@types/vscode": "^1.38.0",
 		"jsonlint": "^1.6.3",
-		"strip-bom": "^3.0.0"
+		"strip-bom": "^3.0.0",
+		"ts-loader": "^6.1.2",
+		"tslint": "^5.16.0",
+		"typescript": "^3.5.1"
 	}
 }

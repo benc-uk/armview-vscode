@@ -8,7 +8,7 @@ body{
 }
 
 #error {
-  font-size: 150%;
+  font-size: 120%;
   color: var(--vscode-errorForeground);
   font-family: var(--vscode-editor-font-family);
 }
@@ -26,6 +26,10 @@ button {
 
 button:hover {
   background-color: var(--vscode-button-hoverBackground);
+}
+
+.toggled {
+  background-color: var(--vscode-gitDecoration-addedResourceForeground);
 }
 
 #infobox {

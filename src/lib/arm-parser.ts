@@ -7,6 +7,7 @@
 
 import * as utils from './utils'
 import * as path from 'path';
+import TelemetryReporter from 'vscode-extension-telemetry';
 const jsonlint = require('jsonlint');
 
 class ARMParser {
@@ -14,15 +15,18 @@ class ARMParser {
   error: any;
   elements: any[];
   extensionPath: string;
+  reporter: TelemetryReporter
+  
   //
   // Load and parse a ARM template from given string
   //
-  constructor(templateJSON: string, path: string) {
+  constructor(templateJSON: string, path: string, reporter: TelemetryReporter) {
     console.log('armview: Start parsing JSON template...');
     this.template = null;
     this.error = null;
     this.elements = [];
     this.extensionPath = path
+    this.reporter = reporter
     
     // Handle BOM characters for those mac owning weirdos
     const stripBom = require('strip-bom');
@@ -78,20 +82,41 @@ class ARMParser {
         if(match) {
           res.name = this._evalExpression(match[1]);
         } 
+
         // Resolve and eval resource location
-        if(res.location){
+        if(res.location) {
           match = res.location.match(/^\[(.*)\]$/);
           if(match) {
             res.location = this._evalExpression(match[1]);
           } 
         }
+
         // Resolve and eval resource kind
-        if(res.kind){
+        if(res.kind) {
           match = res.kind.match(/^\[(.*)\]$/);
           if(match) {
             res.kind = this._evalExpression(match[1]);
           } 
-        }        
+        }
+
+        // Resolve and eval resource tags
+        if(res.tags && typeof res.tags == "string") {
+          match = res.tags.match(/^\[(.*)\]$/);
+          if(match) {
+            res.tags = this._evalExpression(match[1]);
+          } 
+        }     
+
+        // Resolve and eval sku object
+        // if(res.sku && typeof res.sku == "object") {
+        //   Object.keys(res.sku).forEach(propname => {
+        //     let propval = res.sku[propname];
+        //     match = propval.match(/^\[(.*)\]$/);
+        //     if(match) {
+        //       res.sku[propname] = this._evalExpression(match[1]);
+        //     } 
+        //   });
+        // }   
 
         // Make all res types fully qualified, solves a lots of headaches
         if(parentRes)
@@ -127,9 +152,14 @@ class ARMParser {
         let label = res.type.replace(/^.*\//i, '');
   
         // Set default image, no way to catch 404 on client side :/
-        let img = `/img/arm/default.svg`;
-        if(require('fs').existsSync(path.join(this.extensionPath, `assets/img/arm/${res.type}.svg`)))
+        let img = '/img/arm/default.svg';
+        let iconExists = require('fs').existsSync(path.join(this.extensionPath, `assets/img/arm/${res.type}.svg`))
+        if(iconExists) {
           img = `/img/arm/${res.type}.svg`;
+        } else {
+          this.reporter.sendTelemetryEvent('missingIcon', { 'resourceType': res.type, 'resourceFQN': res.fqn });
+          img = '/img/arm/default.svg';
+        }
         
         // App Services - Sites & plans can have different icons depending on 'kind'
         if(res.kind && res.type.includes('microsoft.web')) {
@@ -155,14 +185,28 @@ class ARMParser {
           extraData['template-url'] = this._evalExpression(res.properties.templateLink.uri);
         }
   
-        // Process resource tags
-        if(res.tags) {
+        // Process resource tags, can be objects or strings
+        if(res.tags && typeof res.tags == "object") {
           Object.keys(res.tags).forEach(tagname => {
             let tagval = res.tags[tagname];
             tagval = utils.encode(this._evalExpression(tagval));
             tagname = utils.encode(this._evalExpression(tagname));
-            extraData[tagname] = tagval;  
+            extraData['Tag ' + tagname] = tagval;  
           })
+        } else if(res.tags && typeof res.tags == "string") {
+          extraData['tags'] = res.tags; 
+        }
+
+        // Process SKU
+        if(res.sku && typeof res.sku == "object") {
+          Object.keys(res.sku).forEach(skuname => {
+            let skuval = res.sku[skuname];
+            skuval = utils.encode(this._evalExpression(skuval));
+            skuname = utils.encode(this._evalExpression(skuname));
+            extraData['SKU ' + skuname] = skuval;  
+          });
+        } else if(res.sku && typeof res.sku == "string") {
+          extraData['sku'] = res.sku; 
         }
 
         // Virtual Machines - Try and grab some of the VM info

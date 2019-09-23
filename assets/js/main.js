@@ -5,26 +5,20 @@
 //
 
 // Globals
-var cy;
-var settingSnap = false;
-var infoShown = false;
-var labelField = 'label';
+var cy;                     // Global cytoscape instance
+var settingSnap = false;    // Not used currently
+var infoShown = false;      // Is infobox displayed
+var labelField = 'label';   // Which field to show in labels
+var iconPrefix              // Global prefix string appended to all icons
 
-var iconPrefix
-
-window.addEventListener("resize", function() { 
-  if(cy) {
-    cy.resize();
-    cy.fit();
-  }
-});
-
-
+//
+// Initialize the Cytoscope container, and send message we're done
+//
 function init(prefix) {
   iconPrefix = prefix
-
   hideInfo();
 
+  // Important step initializes cytoscape
   cy = cytoscape({ 
     container: document.getElementById('mainview'),
     wheelSensitivity: 0.15,
@@ -33,6 +27,7 @@ function init(prefix) {
     selectionType: 'single'
   });
 
+  // Handle deselecting nodes
   cy.on('click tap', evt => {
     // Only sensible way I could find to hide the info box when unselecting
     if(!evt.target.length && infoShown) {
@@ -42,7 +37,7 @@ function init(prefix) {
 
   // Handle selection events
   cy.on('select', evt => {
-    // Only work with nodes
+    // Only work with nodes, user can't select edges/arrows
     if(evt.target.isNode()) {
 
       // Force selection of single nodes only
@@ -54,16 +49,16 @@ function init(prefix) {
       document.getElementById('infoimg').setAttribute('src', iconPrefix + evt.target.data('img'));
 
       document.getElementById('infotable').innerHTML = ''
-      addInfo('Name', evt.target.data('name'));
-      addInfo('Type', evt.target.data('type'));
-      addInfo('Location', evt.target.data('location'));
+      _addInfo('Name', evt.target.data('name'));
+      _addInfo('Type', evt.target.data('type'));
+      _addInfo('Location', evt.target.data('location'));
       if(evt.target.data('kind')) 
-        addInfo('Kind', evt.target.data('kind'));   
+        _addInfo('Kind', evt.target.data('kind'));   
 
       // Display any extra fields
       if(evt.target.data('extra')) {
         Object.keys(evt.target.data('extra')).forEach(extra => {
-          addInfo(extra, evt.target.data('extra')[extra]);
+          _addInfo(extra, evt.target.data('extra')[extra]);
         })
       }
 
@@ -80,6 +75,9 @@ function init(prefix) {
   console.log("armview: Initialization complete");
 }
 
+//
+// Called with new or refreshed data
+//
 function displayData(data) {
   console.log("armview: Displaying data");
   cy.remove('*');
@@ -87,7 +85,10 @@ function displayData(data) {
   reLayout();
 }
 
-function addInfo(name, value) {
+//
+// Private method called to update the infobox view
+//
+function _addInfo(name, value) {
   if(value == 'undefined') return;
   name = name.replace('-', ' ');
   name = decodeURIComponent(name);
@@ -96,11 +97,14 @@ function addInfo(name, value) {
   table = document.getElementById('infotable');
 
   if(value.startsWith('http'))
-    table.insertAdjacentHTML('beforeend', `<tr><td>${titleCase(name)}</td><td><a href='/view?url=${encodeURIComponent(value)}' target='_blank'>${value}</a></td></tr>`)
+    table.insertAdjacentHTML('beforeend', `<tr><td>${_utilTitleCase(name)}</td><td><a href='/view?url=${encodeURIComponent(value)}' target='_blank'>${value}</a></td></tr>`)
   else
-    table.insertAdjacentHTML('beforeend', `<tr><td>${titleCase(name)}</td><td>${value}</td></tr>`);
+    table.insertAdjacentHTML('beforeend', `<tr><td>${_utilTitleCase(name)}</td><td>${value}</td></tr>`);
 }
 
+//
+// Layout the view of nodes given current data
+//
 function reLayout() {
   // Set colors in keeping with VS code theme (might be dark or light)
   let bgColor = window.getComputedStyle(document.getElementsByTagName('body')[0]).getPropertyValue('background-color');
@@ -113,6 +117,7 @@ function reLayout() {
     lineColor = '#cccccc';
   } 
 
+  // Style of nodes, i.e. resources
   cy.style().selector('node').style({
     'background-opacity': 0,
     'label': node => { return decodeURIComponent(node.data(labelField)) },
@@ -133,11 +138,13 @@ function reLayout() {
     'text-outline-width': '4'
   });
 
+  // Bounding box for selected nodes
   cy.style().selector('node:selected').style({
     'border-width': '4',
     'border-color': borderColor
   });
 
+  // Edges are arrows between resources
   cy.style().selector('edge').style({
     'target-arrow-shape': 'triangle',
     'curve-style': 'bezier',
@@ -147,28 +154,23 @@ function reLayout() {
     'target-arrow-color': lineColor
   });
 
-  // cy.snapToGrid({gridSpacing: 200, lineWidth: 3, drawGrid: false});
-  // if(settingSnap)
-  //   cy.snapToGrid('snapOn');
-  // else  
-  //   cy.snapToGrid('snapOff');
+  // Removed for now
+  cy.snapToGrid({gridSpacing: 200, lineWidth: 3, drawGrid: false});
+  if(settingSnap)
+    cy.snapToGrid('snapOn');
+  else  
+    cy.snapToGrid('snapOff');
 
+  // Re-layout nodes in breadthfirst mode, resizing and fitting too
   cy.style().update()
   cy.resize();
   cy.layout({name: 'breadthfirst'}).run();
   cy.fit();
 }
 
-function toggleSnap() {
-  settingSnap = !settingSnap; 
-  if(settingSnap) {
-    cy.snapToGrid('snapOn');
-    cy.fit();  
-  } else {  
-    cy.snapToGrid('snapOff');
-  }  
-}
-
+//
+// Toggle labels from showing resource type to resource name
+//
 function toggleLabels() {
   labelField = labelField == 'label' ? 'name' : 'label' 
   cy.style().selector('node').style({
@@ -176,21 +178,52 @@ function toggleLabels() {
   }).update();
 }
 
-function titleCase(str) {
+//
+// Hide the infobox, use CSS transitions, so we slide it hidden to right
+//
+function hideInfo() {
+  let w = document.getElementById("infobox").offsetWidth
+  if(!w || w <= 0)
+    w = 200; // This is a guess, but only used first time infobox is shown
+  document.getElementById('infobox').style.right = `-${w}px`
+  infoShown = false;
+}
+
+//
+// Show the infobox, use CSS transitions, so we slide it into view
+//
+function showInfo() {
+  document.getElementById('infobox').style.right = "10px"
+  infoShown = true;
+}
+
+//
+// Small util function for showing strings in Title Case
+//
+function _utilTitleCase(str) {
   return str.toLowerCase().split(' ').map(function(word) {
     return word.replace(word[0], word[0].toUpperCase());
   }).join(' ');
 }
 
-function hideInfo() {
-  let w = document.getElementById("infobox").offsetWidth
-  if(!w || w <= 0)
-    w = 200
-  document.getElementById('infobox').style.right = `-${w}px`
-  infoShown = false;
-}
+//
+// Listen for resize events and handle it like a pro
+//
+window.addEventListener("resize", function() { 
+  if(cy) {
+    cy.resize();
+    cy.fit();
+  }
+});
 
-function showInfo() {
-  document.getElementById('infobox').style.right = "10px"
-  infoShown = true;
+function toggleSnap() {
+  settingSnap = !settingSnap; 
+  if(settingSnap) {
+    document.getElementById('snapbut').classList.add('toggled')
+    cy.snapToGrid('snapOn');
+    cy.fit();  
+  } else {  
+    document.getElementById('snapbut').classList.remove('toggled')
+    cy.snapToGrid('snapOff');
+  }  
 }

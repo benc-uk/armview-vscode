@@ -7,10 +7,22 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import ARMParser from './lib/arm-parser';
+import TelemetryReporter from 'vscode-extension-telemetry';
+
+// all events will be prefixed with this event name
+const pjson = require('../package.json');
+const telemetryExtensionId = pjson.publisher + "." + pjson.name;
+const telemetryExtensionVersion = pjson.version; 
+const telemetryKey = '0e2a6ba6-6c52-4e94-86cf-8dc87830e82e'; 
 
 var panel: vscode.WebviewPanel | undefined = undefined;
 var extensionPath: string;
 var editor: vscode.TextEditor;
+var reporter: TelemetryReporter;
+
+// Used to buffer/delay updates when typing
+var refreshedTime: number = Date.now();
+var typingTimeout: any;
 
 //
 // Main extension activation
@@ -58,12 +70,25 @@ export function activate(context: vscode.ExtensionContext) {
 				light: vscode.Uri.file(`${extensionPath}/assets/img/icons/eye-light.svg`)
 			}	
 			
+			reporter = new TelemetryReporter(telemetryExtensionId, telemetryExtensionVersion, telemetryKey);
+			context.subscriptions.push(reporter);
+
 			// Load the webview HTML/JS
 			panel.webview.html = getWebviewContent();
 			
 			// Listen for active document changes, i.e. user typing
 			vscode.workspace.onDidChangeTextDocument(event => {
 				//console.log("### onDidChangeTextDocument");
+				
+				// If an update is scheduled, then skip
+				if(typingTimeout) return;
+
+				// Buffer/delay updates by 1.5 seconds
+				if(Date.now() - refreshedTime < 1500) {
+					typingTimeout = setTimeout(refreshView, 1500);
+					return;
+				}
+				
 				try {
 					refreshView();
 				} catch(err) {}
@@ -75,8 +100,10 @@ export function activate(context: vscode.ExtensionContext) {
 				try {
 					// Switch editor and refresh
 					if(vscode.window.activeTextEditor) {
-						editor = vscode.window.activeTextEditor;
-						refreshView();
+						if(editor.document.fileName != vscode.window.activeTextEditor.document.fileName) {
+							editor = vscode.window.activeTextEditor;
+							refreshView();
+						}
 					}
 				} catch(err) {}
 			});
@@ -96,7 +123,9 @@ export function activate(context: vscode.ExtensionContext) {
 			// Dispose/cleanup
 			panel.onDidDispose(
         () => {
+					reporter.dispose();
 					panel = undefined
+					clearTimeout(typingTimeout)
 				},
         null,
         context.subscriptions
@@ -109,6 +138,10 @@ export function activate(context: vscode.ExtensionContext) {
 // Refresh contents of the view
 //
 function refreshView() {
+	// Reset timers for typing updates
+	refreshedTime = Date.now();
+	typingTimeout = undefined;
+
 	if(!panel)
 		return
 
@@ -120,14 +153,17 @@ function refreshView() {
 
 		// Parse the source template JSON
 		let templateJSON = editor.document.getText();
-    var parser = new ARMParser(templateJSON, extensionPath);    
+    var parser = new ARMParser(templateJSON, extensionPath, reporter);    
 
     // Check for errors - if it's not JSON or a valid ARM template
     if(parser.getError()) {
-      panel.webview.postMessage({ command: 'error', payload: parser.getError() })
+			reporter.sendTelemetryEvent('parseError', {'error': parser.getError(), 'filename': editor.document.fileName});
+			panel.webview.postMessage({ command: 'error', payload: parser.getError() })
 		}	else {
 			// Send result as message
-			panel.webview.postMessage({ command: 'refresh', payload: parser.getResult() });
+			let result = parser.getResult();
+			reporter.sendTelemetryEvent('parsedOK', {'nodeCount': result.length.toString(), 'filename': editor.document.fileName});
+			panel.webview.postMessage({ command: 'refresh', payload: result });
 		}
 	} else {
 		vscode.window.showErrorMessage("No editor active, open a ARM template JSON file in the editor")
@@ -138,13 +174,20 @@ function refreshView() {
 // Initialise the contents of the webview - called at startup
 //
 function getWebviewContent() {	
+	let wsname = "undefined";
+	if(vscode.workspace.name) wsname = vscode.workspace.name;
+	reporter.sendTelemetryEvent('activated', {'workspace': wsname});
+
 	if(!panel)
 		return ""
 
 	const mainScriptUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'js', 'main.js')));
 	const mainCss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'css', 'main.css')));
-	const cytoscapeUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'js', 'cytoscape.min.js')));
+	const cytoscapeUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'js', 'vendor', 'cytoscape.min.js')));
 	const prefix = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets')));
+
+	const cytoscapeSnapUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'js', 'vendor', 'cytoscape-snap-to-grid.js')));
+	const jqueryUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'js', 'vendor', 'jquery-3.4.1.slim.min.js')));
 
 	return `
 <!DOCTYPE html>
@@ -154,7 +197,10 @@ function getWebviewContent() {
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<!--meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline'; script-src * 'unsafe-inline'; style-src * 'unsafe-inline'"-->
 
+	<script src="${jqueryUri}"></script>
 	<script src="${cytoscapeUri}"></script>
+	<script src="${cytoscapeSnapUri}"></script>
+
 	<script src="${mainScriptUri}"></script>
 
 	<link href="${mainCss}" rel="stylesheet" type="text/css">
@@ -166,6 +212,7 @@ function getWebviewContent() {
 	<div id="buttons">
 		<button onclick="toggleLabels()">LABELS</button>
 		<button onclick="cy.fit()">FIT</button>
+		<button onclick="toggleSnap()" id="snapbut">SNAP</button>
 		<button onclick="reLayout()">LAYOUT</button>
 	</div>
 	<div id="mainview"></div>

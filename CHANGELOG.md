@@ -1,4 +1,9 @@
-# Change Log
+## 0.0.5
+- Snap to grid added
+- Telemetry tracking added
+- Fix for handling resource tags
+- Added resource SKU details to info box
+- Smarter handling of updates when user is editing JSON
 
 ## 0.0.4
 - Fixed initialization & first display problems
