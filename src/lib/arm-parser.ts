@@ -8,7 +8,8 @@
 import * as utils from './utils'
 import * as path from 'path';
 import TelemetryReporter from 'vscode-extension-telemetry';
-import { ESPIPE } from 'constants';
+import * as stripJsonComments from 'strip-json-comments';
+const stripBom = require('strip-bom');
 const jsonlint = require('jsonlint');
 
 class ARMParser {
@@ -29,14 +30,15 @@ class ARMParser {
     this.extensionPath = path
     this.reporter = reporter
     
-    // Handle BOM characters for those mac owning weirdos
-    const stripBom = require('strip-bom');
-    templateJSON = stripBom(templateJSON);
-
     // Try to parse JSON file
     try {
+      // Strip out BOM characters for those mac owning weirdos
+      templateJSON = stripBom(templateJSON); 
+      // ARM templates do allow comments, but it's not part of the JSON spec 
+      templateJSON = stripJsonComments(templateJSON); 
+
       // Switched to jsonlint for more meaningful error messages
-      this.template = jsonlint.parse(templateJSON)
+      this.template = jsonlint.parse(templateJSON);
     } catch(e) {
       this.error = e.message;
       return;
@@ -48,7 +50,7 @@ class ARMParser {
       return;      
     }
         
-    // first pass, fix types and assign ids with a hash function
+    // First pass, fix types and assign ids with a hash function
     this._preProcess(this.template.resources, null);
     if(this.error) return;
 
@@ -152,14 +154,21 @@ class ARMParser {
         // Label is the last part of the resource type
         let label = res.type.replace(/^.*\//i, '');
   
-        // Set default image, no way to catch 404 on client side :/
+        // Workout which icon image to use, no way to catch missing images client side 
         let img = '/img/arm/default.svg';
         let iconExists = require('fs').existsSync(path.join(this.extensionPath, `assets/img/arm/${res.type}.svg`))
         if(iconExists) {
           img = `/img/arm/${res.type}.svg`;
         } else {
-          this.reporter.sendTelemetryEvent('missingIcon', { 'resourceType': res.type, 'resourceFQN': res.fqn });
-          img = '/img/arm/default.svg';
+          // API Management has about 7 million sub-resources, rather than include them all, we assign a custom default for APIM
+          if(res.type.includes('apimanagement')) {
+            img = '/img/arm/microsoft.apimanagement/default.svg';
+          } else {
+            // Send telemetry on missing icons, this helps me narrow down which ones to add in the future
+            this.reporter.sendTelemetryEvent('missingIcon', { 'resourceType': res.type, 'resourceFQN': res.fqn });
+            // Use default icon as nothing else found
+            img = '/img/arm/default.svg';
+          }
         }
         
         // App Services - Sites & plans can have different icons depending on 'kind'
@@ -175,6 +184,7 @@ class ARMParser {
           img = `/img/arm/microsoft.eventgrid/eventsubscriptions.svg`;
         }
 
+        // Linux VM icon with Tux :)
         if(res.type.includes('microsoft.compute') && res.properties && res.properties.osProfile) {
           if(res.properties.osProfile.linuxConfiguration) {
             img = `/img/arm/microsoft.compute/virtualmachines-linux.svg`;

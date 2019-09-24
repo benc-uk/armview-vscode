@@ -1,3 +1,8 @@
+## 0.0.7
+- Many, many new icons added!
+- Support for JSON comments, which is allowed by ARM
+- Custom default icon for API Management sub-resources
+
 ## 0.0.6
 - Fix for SKU evaluation error (exp.trim)
 - Nicer error messages
