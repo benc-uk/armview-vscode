@@ -193,7 +193,12 @@ class ARMParser {
   
         // For nested/linked templates
         if(res.type == 'microsoft.resources/deployments' && res.properties.templateLink) {
-          extraData['template-url'] = this._evalExpression(res.properties.templateLink.uri);
+          let linkUri = res.properties.templateLink.uri;
+          let match = linkUri.match(/^\[(.*)\]$/);
+          if(match) {
+            linkUri = this._evalExpression(match[1]);
+          }  
+          extraData['template-url'] = linkUri;//this._evalExpression(res.properties.templateLink.uri);
         }
   
         // Process resource tags, can be objects or strings
@@ -315,19 +320,29 @@ class ARMParser {
 
     exp = exp.trim();
 
-    // catch special cases, with referenced properties, e.g. resourceGroup().location
+    // It looks like a function call with a property reference e.g foo().bar
     let match = exp.match(/(\w+)\((.*)\)\.(.*)/);
+    let funcProps = undefined;
     if(match) {
       let funcName = match[1].toLowerCase();
       let funcParams = match[2];
-      let funcProps = match[3].toLowerCase();
-      if(funcName == 'resourcegroup' && funcProps == 'id') return 'resource-group-id'; 
-      if(funcName == 'resourcegroup' && funcProps == 'location') return 'resource-group-location'; 
-      if(funcName == 'subscription' && funcProps == 'subscriptionid') return 'subscription-id'; 
-      if(funcName == 'deployment' && funcProps == 'name') return 'deployment-name'; 
+      funcProps = match[3].toLowerCase();
+
+      // Catch some special cases, with referenced properties, e.g. resourceGroup().location
+      if(funcName == 'resourcegroup' && funcProps == 'id') return '{res-group-id}'; 
+      if(funcName == 'resourcegroup' && funcProps == 'location') return '{res-group-location}'; 
+      if(funcName == 'subscription' && funcProps == 'subscriptionid') return '{subscription-id}'; 
+      if(funcName == 'deployment' && funcProps == 'name') return '{deployment-name}'; 
+
+      if(funcName == 'variables') {
+        return this._funcVarParam(this.template.variables, this._evalExpression(funcParams), funcProps);
+      }     
+      if(funcName == 'parameters') {
+        return this._funcVarParam(this.template.parameters, this._evalExpression(funcParams), funcProps);
+      }           
     }
-    
-    // It looks like a function
+
+    // It looks like a 'plain' function call
     match = exp.match(/(\w+)\((.*)\)/);
     if(match) {
       let funcName = match[1].toLowerCase();
@@ -335,7 +350,7 @@ class ARMParser {
       //console.log(`~~~ function: *${funcName}* |${funcParams}|`);
       
       if(funcName == 'variables') {
-        return this._funcVariables(this._evalExpression(funcParams));
+        return this._funcVarParam(this.template.variables, this._evalExpression(funcParams), '');
       }
       if(funcName == 'uniquestring') {
         return this._funcUniquestring(this._evalExpression(funcParams));
@@ -343,10 +358,12 @@ class ARMParser {
       if(funcName == 'concat') {
         return this._funcConcat(funcParams, '');
       }
+      if(funcName == 'uri') {
+        // Treat as concat
+        return this._funcConcat(funcParams, '');
+      }
       if(funcName == 'parameters') {
-        // This is a small cop out, but we can't know the value of parameters until deployment!
-        // So we just display curly braces around the paramter name. It looks OK
-        return `{{${this._evalExpression(funcParams)}}}`;
+        return this._funcVarParam(this.template.parameters, this._evalExpression(funcParams), '');
       }  
       if(funcName == 'replace') {
         return this._funcReplace(funcParams);
@@ -398,25 +415,69 @@ class ARMParser {
   }
 
   //
-  // Emulate the ARM function `variables()` to reference template variables
+  // Emulate the ARM function `variables()` and `parameters()` to reference template variables/parameters
+  // The only difference is the source 
   //
-  private _funcVariables(varName: string) {
-    if(!this.template.variables) return "variables-missing";
-    let findKey = Object.keys(this.template.variables).find(key => varName == key);
+  private _funcVarParam(source: any, varName: string, propAccessor: string) {
+    if(!source) return "{undefined}";
+    let findKey = Object.keys(source).find(key => varName == key);
     if(findKey) {
-      let val = this.template.variables[findKey];
 
-      // Variables can be JSON objects, give up at this point
-      if(typeof(val) != 'string') return "variable-obj";
-
-      // variable values can be expressions too, so down the rabbit hole we go...
-      let match = val.match(/^\[(.*)\]$/);
-      if(match) {
-        return this._evalExpression(match[1]);
+      let val;
+      
+      // For parameters we access `defaultValue`
+      if(source == this.template.parameters) {
+        val = source[findKey].defaultValue;
+        // Without a defaultValue it is impossible to know what the parameters value could be!
+        // So a fall-back out is to return the param name inside {}
+        if(!val)
+          return `{${this._evalExpression(varName)}}`
+      } else {
+        // For variables we use the actual value
+        val = source[findKey];
       }
+
+      // Variables can be JSON objects, MASSIVE SIGH LOOK A THIS INSANITY
+      if(typeof(val) == 'object') {
+        if(!propAccessor) {
+          // We're dealing with an object and have no property accessor, nothing we can do
+          return `{${JSON.stringify(val)}}`
+        }
+
+        // Use eval to access property, I'm not happy about it, but don't have a choice
+        let evalResult = eval('val.' + propAccessor);
+        
+        if(typeof(evalResult) == 'undefined') {
+          return "{undefined}";
+        }
+
+        if(typeof(evalResult) == 'string') {
+          // variable references values can be expressions too, so down the rabbit hole we go...
+          let match = evalResult.match(/^\[(.*)\]$/);
+          if(match) {
+            return this._evalExpression(match[1]);
+          }
+          return evalResult;
+        }
+
+        if(typeof(evalResult) == 'object') {
+          // We got an object back, give up
+          return `{${JSON.stringify(evalResult)}}`
+        }
+      }
+
+      if(typeof(val) == 'string') {
+        // variable values can be expressions too, so down the rabbit hole we go...
+        let match = val.match(/^\[(.*)\]$/);
+        if(match) {
+          return this._evalExpression(match[1]);
+        }
+      }
+
+      // Fall back
       return val;
     } else {
-      return "undefined-var";
+      return "{undefined}";
     }
   }
 
@@ -437,7 +498,9 @@ class ARMParser {
     var res = "";
     for(var p in paramList) {
       let param = paramList[p];
-      param = param.trim();
+      try {
+        param = param.trim();
+      } catch(err) {}
       res += joinStr + this._evalExpression(param)
     }
     return res;
