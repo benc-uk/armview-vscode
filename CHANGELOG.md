@@ -1,3 +1,8 @@
+## 0.0.8
+- Parameter & variable values which are objects now resolved
+- Parameters defaultValues detected picked up and used
+- Display unresolvable properties in italics and inside {}
+
 ## 0.0.7
 - Many, many new icons added!
 - Support for JSON comments, which is allowed by ARM

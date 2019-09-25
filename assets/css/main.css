@@ -52,6 +52,10 @@ button:hover {
   background-color: var(--vscode-gitDecoration-addedResourceForeground);
 }
 
+.italic {
+  font-style: italic;
+}
+
 #infobox {
   display: block;
   font-size: 90%;

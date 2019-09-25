@@ -2,7 +2,7 @@
 	"name": "armview",
 	"displayName": "ARM Template Viewer",
 	"description": "Graphically display ARM templates in an interactive map view",
-	"version": "0.0.7",
+	"version": "0.0.8",
 	"icon": "assets/img/icons/main.png",
 	"publisher": "bencoleman",
 	"author": {
@@ -19,7 +19,7 @@
 		"azure"
 	],
 	"engines": {
-		"vscode": "^1.31.0"
+		"vscode": "^1.30.0"
 	},
 	"categories": [
 		"Programming Languages",
