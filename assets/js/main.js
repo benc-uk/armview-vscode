@@ -72,14 +72,14 @@ function init(prefix) {
   // Send message that we're initialized and ready for data
   const vscode = acquireVsCodeApi();
   vscode.postMessage({ command: 'initialized' })  
-  console.log("armview: Initialization complete");
+  console.log("### ArmView: Initialization complete");
 }
 
 //
 // Called with new or refreshed data
 //
 function displayData(data) {
-  console.log("armview: Displaying data");
+  console.log("### ArmView: Displaying received data");
   cy.remove('*');
   cy.add(data);
   reLayout();

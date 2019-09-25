@@ -12,23 +12,29 @@ import * as stripJsonComments from 'strip-json-comments';
 const stripBom = require('strip-bom');
 const jsonlint = require('jsonlint');
 
+
 class ARMParser {
   template: any;
   error: any;
+  currentExpression: any;
+  currentResource: any;
   elements: any[];
   extensionPath: string;
-  reporter: TelemetryReporter
+  reporter: TelemetryReporter | undefined;
   
   //
   // Load and parse a ARM template from given string
   //
-  constructor(templateJSON: string, path: string, reporter: TelemetryReporter) {
-    console.log('armview: Start parsing JSON template...');
+  constructor(templateJSON: string, extensionPath: string, reporter?: TelemetryReporter) {
+    console.log('### ArmView: Start parsing JSON template...');
     this.template = null;
     this.error = null;
+    this.currentExpression = null;
     this.elements = [];
-    this.extensionPath = path
-    this.reporter = reporter
+    this.extensionPath = extensionPath
+
+    if(reporter) 
+      this.reporter = reporter
     
     // Try to parse JSON file
     try {
@@ -39,25 +45,27 @@ class ARMParser {
 
       // Switched to jsonlint for more meaningful error messages
       this.template = jsonlint.parse(templateJSON);
-    } catch(e) {
-      this.error = e.message;
+    } catch(err) {
+      err.message = "This file is not valid JSON, please correct the errors below\n\n" + err.message
+      this.error = err; //e.message;
       return;
     }
 
     // Some simple ARM validation
     if(!this.template.resources || !this.template.$schema) {
-      this.error = `File doesn't appear to be an ARM template, but is valid JSON`;
+      this.error = new Error("File doesn't appear to be an ARM template, but is valid JSON");
       return;      
     }
         
     // First pass, fix types and assign ids with a hash function
     this._preProcess(this.template.resources, null);
     if(this.error) return;
+    console.log(`### ArmView: Pre-process pass complete`);
 
     // 2nd pass, work on resources
     this._processResources(this.template.resources);
     if(this.error) return;
-    console.log(`armview: Parsing complete, found ${this.elements.length} elements in template`);
+    console.log(`### ArmView: Parsing complete, found ${this.elements.length} elements in template`);
   }
 
   //
@@ -75,9 +83,25 @@ class ARMParser {
   }
 
   //
+  // Get last parsed expression, if any
+  //
+  getLastExpression() {
+    return this.currentExpression;
+  }
+
+  //
+  // Get last parsed expression, if any
+  //
+  getLastResource() {
+    return this.currentResource;
+  }
+
+
+  //
   // Pre-parser function, does some work to make life easier for the main parser 
   //
   private _preProcess(resources: any[], parentRes: any) {
+    console.log(`### ArmView: Pre-process starting...`);
     resources.forEach(res => {
       try {
         // Resolve and eval resource name
@@ -109,17 +133,26 @@ class ARMParser {
             res.tags = this._evalExpression(match[1]);
           } 
         }     
+        if(res.tags && typeof res.tags == "object") {
+          Object.keys(res.tags).forEach(tagname => {
+            let tagval = res.tags[tagname].toString();
+            match = tagval.match(/^\[(.*)\]$/);
+            if(match) {
+              res.tags[tagname] = this._evalExpression(match[1]);
+            } 
+          });
+        } 
 
         // Resolve and eval sku object
-        // if(res.sku && typeof res.sku == "object") {
-        //   Object.keys(res.sku).forEach(propname => {
-        //     let propval = res.sku[propname];
-        //     match = propval.match(/^\[(.*)\]$/);
-        //     if(match) {
-        //       res.sku[propname] = this._evalExpression(match[1]);
-        //     } 
-        //   });
-        // }   
+        if(res.sku && typeof res.sku == "object") {
+          Object.keys(res.sku).forEach(propname => {
+            let propval = res.sku[propname].toString();
+            match = propval.match(/^\[(.*)\]$/);
+            if(match) {
+              res.sku[propname] = this._evalExpression(match[1]);
+            } 
+          });
+        }   
 
         // Make all res types fully qualified, solves a lots of headaches
         if(parentRes)
@@ -135,8 +168,8 @@ class ARMParser {
         if(res.resources) {
           this._preProcess(res.resources, res)
         }
-      } catch (ex) {
-        this.error = `Unable to pre-process ARM resources, template is probably invalid. Bummer! ${ex}`
+      } catch (err) {
+        this.error = err; //`Unable to pre-process ARM resources, template is probably invalid. ${ex}`
       }
     });
   }
@@ -147,7 +180,7 @@ class ARMParser {
   private _processResources(resources: any[]) {
     resources.forEach(res => {
       try {
-        let name = res.name;
+        this.currentResource = res.type + ": " + res.name
         let extraData: any;
         extraData = {}
   
@@ -165,7 +198,7 @@ class ARMParser {
             img = '/img/arm/microsoft.apimanagement/default.svg';
           } else {
             // Send telemetry on missing icons, this helps me narrow down which ones to add in the future
-            this.reporter.sendTelemetryEvent('missingIcon', { 'resourceType': res.type, 'resourceFQN': res.fqn });
+            if(this.reporter) this.reporter.sendTelemetryEvent('missingIcon', { 'resourceType': res.type, 'resourceFQN': res.fqn });
             // Use default icon as nothing else found
             img = '/img/arm/default.svg';
           }
@@ -290,8 +323,8 @@ class ARMParser {
         if(res.resources) {
           this._processResources(res.resources);
         }        
-      } catch (ex) {
-        this.error = `Unable to process ARM resources, template is probably invalid. Bummer! ${ex}`
+      } catch (err) {
+        this.error = err; //`Unable to process ARM resources, template is probably invalid. ${ex}`
       }
     })    
   }
@@ -314,6 +347,8 @@ class ARMParser {
   // Main ARM expression parser, attempts to evaluate and resolve ARM expressions into strings
   //
   private _evalExpression(exp: string): any {
+    this.currentExpression = exp;
+
     // Catch some rare errors where non-strings are parsed
     if(typeof exp != "string")
       return exp;
@@ -324,13 +359,13 @@ class ARMParser {
     let match = exp.match(/(\w+)\((.*)\)\.(.*)/);
     let funcProps = undefined;
     if(match) {
-      let funcName = match[1].toLowerCase();
+      let funcName = match[1];
       let funcParams = match[2];
-      funcProps = match[3].toLowerCase();
+      funcProps = match[3];
 
       // Catch some special cases, with referenced properties, e.g. resourceGroup().location
-      if(funcName == 'resourcegroup' && funcProps == 'id') return '{res-group-id}'; 
-      if(funcName == 'resourcegroup' && funcProps == 'location') return '{res-group-location}'; 
+      if(funcName == 'resourceGroup' && funcProps == 'id') return '{res-group-id}'; 
+      if(funcName == 'resourceGroup' && funcProps == 'location') return '{res-group-location}'; 
       if(funcName == 'subscription' && funcProps == 'subscriptionid') return '{subscription-id}'; 
       if(funcName == 'deployment' && funcProps == 'name') return '{deployment-name}'; 
 
@@ -437,32 +472,45 @@ class ARMParser {
         val = source[findKey];
       }
 
-      // Variables can be JSON objects, MASSIVE SIGH LOOK A THIS INSANITY
+      // console.log(`### DEBUG: propAccessor: ` + propAccessor);
+      // console.log(`### DEBUG: typeof val: ` + typeof(val));
+      // console.log(`### DEBUG: val: ` + JSON.stringify(val));
+
+      // Variables can be JSON objects, MASSIVE SIGH LOOK AT THIS INSANITY
       if(typeof(val) == 'object') {
         if(!propAccessor) {
           // We're dealing with an object and have no property accessor, nothing we can do
           return `{${JSON.stringify(val)}}`
         }
+        
+        // Hack to try to handle copyIndex, default to first item in array
+        propAccessor = propAccessor.replace('copyIndex()', '0');
 
         // Use eval to access property, I'm not happy about it, but don't have a choice
-        let evalResult = eval('val.' + propAccessor);
-        
-        if(typeof(evalResult) == 'undefined') {
-          return "{undefined}";
-        }
+        try {
+          let evalResult = eval('val.' + propAccessor);
 
-        if(typeof(evalResult) == 'string') {
-          // variable references values can be expressions too, so down the rabbit hole we go...
-          let match = evalResult.match(/^\[(.*)\]$/);
-          if(match) {
-            return this._evalExpression(match[1]);
+          if(typeof(evalResult) == 'undefined') {
+            console.log(`### ArmView: WARN! Your template contains invalid references: ${varName} -> ${propAccessor}`)
+            return "{undefined}";
           }
-          return evalResult;
-        }
 
-        if(typeof(evalResult) == 'object') {
-          // We got an object back, give up
-          return `{${JSON.stringify(evalResult)}}`
+          if(typeof(evalResult) == 'string') {
+            // variable references values can be expressions too, so down the rabbit hole we go...
+            let match = evalResult.match(/^\[(.*)\]$/);
+            if(match) {
+              return this._evalExpression(match[1]);
+            }
+            return evalResult;
+          }
+
+          if(typeof(evalResult) == 'object') {
+            // We got an object back, give up
+            return `{${JSON.stringify(evalResult)}}`
+          }
+        } catch(err) {
+          console.log(`### ArmView: WARN! Your template contains invalid references: ${varName} -> ${propAccessor}`)
+          return "{undefined}"
         }
       }
 
@@ -477,6 +525,7 @@ class ARMParser {
       // Fall back
       return val;
     } else {
+      console.log(`### ArmView: WARN! Your template contains invalid references: ${varName} -> ${propAccessor}`)
       return "{undefined}";
     }
   }

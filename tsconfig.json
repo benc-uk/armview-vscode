@@ -8,5 +8,5 @@
 		"rootDir": "src",
 		"allowJs": false
 	},
-	"exclude": ["node_modules", "out"]
+	"exclude": ["node_modules", "out", "tests"]
 }

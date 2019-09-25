@@ -2,7 +2,7 @@
 	"name": "armview",
 	"displayName": "ARM Template Viewer",
 	"description": "Graphically display ARM templates in an interactive map view",
-	"version": "0.0.8",
+	"version": "0.0.9",
 	"icon": "assets/img/icons/main.png",
 	"publisher": "bencoleman",
 	"author": {
@@ -84,7 +84,8 @@
 		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -p ./",
 		"lint": "tslint -p ./",
-		"watch": "tsc -w -p ./"
+		"watch": "tsc -w -p ./",
+		"test": "ts-mocha ./tests/test-all-quickstarts.ts"
 	},
 	"dependencies": {
 		"jsonlint": "^1.6.3",
@@ -93,11 +94,14 @@
 		"vscode-extension-telemetry": "^0.1.2"
 	},
 	"devDependencies": {
+		"@types/mocha": "^5.2.7",
 		"@types/node": "^10.5.2",
 		"@types/vscode": "^1.30.0",
 		"jsonlint": "^1.6.3",
+		"mocha": "^6.2.0",
 		"strip-bom": "^3.0.0",
 		"ts-loader": "^6.1.2",
+		"ts-mocha": "^6.0.0",
 		"tslint": "^5.16.0",
 		"typescript": "^3.5.1"
 	}

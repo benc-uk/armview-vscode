@@ -155,10 +155,17 @@ function refreshView() {
 		let templateJSON = editor.document.getText();
     var parser = new ARMParser(templateJSON, extensionPath, reporter);    
 
-    // Check for errors - if it's not JSON or a valid ARM template
-    if(parser.getError()) {
-			reporter.sendTelemetryEvent('parseError', {'error': parser.getError(), 'filename': editor.document.fileName});
-			panel.webview.postMessage({ command: 'error', payload: parser.getError() })
+		// Check for errors - if it's not JSON or a valid ARM template
+		let err = parser.getError()
+    if(err) {
+			console.log('### ArmView: ERROR STACK: ' + err.stack)
+			reporter.sendTelemetryEvent('parseError', {'error': err, 'filename': editor.document.fileName});
+			panel.webview.postMessage({ 
+				command: 'error', 
+				payload: err + 
+					"\n\nTriggering expression: " + parser.getLastExpression() +
+					"\n\nTriggering resource: " + parser.getLastResource()
+			})
 		}	else {
 			// Send result as message
 			let result = parser.getResult();
@@ -171,7 +178,7 @@ function refreshView() {
 };
 
 //
-// Initialise the contents of the webview - called at startup
+// Initialize the contents of the webview - called at startup
 //
 function getWebviewContent() {	
 	// Send telemetry for activation 
