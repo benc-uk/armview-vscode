@@ -96,10 +96,14 @@ function _addInfo(name, value) {
 
   table = document.getElementById('infotable');
 
-  if(value.startsWith('http'))
+  if(value.startsWith('http')) {
     table.insertAdjacentHTML('beforeend', `<tr><td>${_utilTitleCase(name)}</td><td><a href='/view?url=${encodeURIComponent(value)}' target='_blank'>${value}</a></td></tr>`)
-  else
-    table.insertAdjacentHTML('beforeend', `<tr><td>${_utilTitleCase(name)}</td><td>${value}</td></tr>`);
+  } else {
+    let valClass = '';
+    if(value.startsWith('{') && value.endsWith('}'))
+      valClass = 'italic';
+    table.insertAdjacentHTML('beforeend', `<tr><td>${_utilTitleCase(name)}</td><td class='${valClass}'>${value}</td></tr>`);
+  }
 }
 
 //
@@ -116,6 +120,8 @@ function reLayout() {
     textColor = '#222222';
     lineColor = '#cccccc';
   } 
+
+  hideInfo();
 
   // Style of nodes, i.e. resources
   cy.style().selector('node').style({
