@@ -4,3 +4,4 @@ src/**
 tsconfig.json
 tslint.json
 tests/**
+.github/**

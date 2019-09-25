@@ -4,6 +4,10 @@
 
 This extension displays a graphical preview of Azure Resource Manager (ARM) templates. The view will show all resources with the official Azure icons and also linkage between the resources. Uses the [Cytoscape.js library](http://js.cytoscape.org/)
 
+You can drag and move icons as you wish, zoom in and out with the mouse wheel and drag the canvas to pan around. Clicking on a resource will show a small "infobox" with extra details
+
+Extension as been tested successfully against all 890+ [Azure Quickstart Templates](https://github.com/Azure/azure-quickstart-templates) 😁
+
 ![s1](assets/readme/screen1.png)
 
 ![s2](assets/readme/screen2.png)
@@ -32,7 +36,7 @@ This extension displays a graphical preview of Azure Resource Manager (ARM) temp
 # Notes
 This is a port of a older *ARM Viewer* project, which was a standalone Node.js webapp https://github.com/benc-uk/azure-armviewer
 
-This project was inspired by the old ARMViz tool. ARMViz sadly seems to have been abandoned, it often has problems displaying templates, and personally I found the appearance of the output looked poor, and was hard to read. These are some of the reasons why I created this project
+This project was created as a learning exercise, but was heavily inspired & influenced by the old ARMViz tool. ARMViz sadly seems to have been abandoned, it often has problems displaying some templates. Personally I wasn't a fan of look of the output, and found it hard to read. These are a few of the reasons why I created this project
 
 
 # Limitations & Known Issues 

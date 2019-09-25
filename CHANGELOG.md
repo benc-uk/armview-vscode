@@ -1,3 +1,8 @@
+## 0.0.9
+- Many fixes to parameter & variable resolution
+- Improved error messages and logging
+- Tested successfully against ALL templates on https://github.com/Azure/azure-quickstart-templates
+
 ## 0.0.8
 - Parameter & variable values which are objects now resolved
 - Parameters defaultValues detected picked up and used
