@@ -126,7 +126,7 @@ function reLayout() {
   // Style of nodes, i.e. resources
   cy.style().selector('node').style({
     'background-opacity': 0,
-    'label': node => { return decodeURIComponent(node.data(labelField)) },
+    'label': node => { return getLabel(node) },
     'background-image': node => { return iconPrefix + node.data('img') },
     'background-width': '90%',
     'background-height': '90%',
@@ -160,6 +160,15 @@ function reLayout() {
     'target-arrow-color': lineColor
   });
 
+  // Bounding box for groups
+  cy.style().selector(':parent').style({
+    'border-width': '4',
+    'border-color': '#000',
+    'border-opacity': 0.5,
+    'background-color': '#000',
+    'background-opacity': 0.2
+  });
+
   // Removed for now
   cy.snapToGrid({gridSpacing: 200, lineWidth: 3, drawGrid: false});
   if(settingSnap)
@@ -170,7 +179,10 @@ function reLayout() {
   // Re-layout nodes in breadthfirst mode, resizing and fitting too
   cy.style().update()
   cy.resize();
-  cy.layout({name: 'breadthfirst'}).run();
+  cy.layout({
+    name: 'breadthfirst',
+    nodeDimensionsIncludeLabels: false
+  }).run();
   cy.fit();
 }
 
@@ -180,7 +192,7 @@ function reLayout() {
 function toggleLabels() {
   labelField = labelField == 'label' ? 'name' : 'label' 
   cy.style().selector('node').style({
-    'label': function( ele ){ return decodeURIComponent(ele.data(labelField)) },
+    'label': node => { return getLabel(node) },
   }).update();
 }
 
@@ -232,4 +244,16 @@ function toggleSnap() {
     document.getElementById('snapbut').classList.remove('toggled')
     cy.snapToGrid('snapOff');
   }  
+}
+
+function getLabel(node) {
+  // Special case - if resource has displayname tag
+  if(labelField == 'name') {
+    for(let extraField in node.data('extra')) {
+      if(extraField.toLowerCase() == 'tag displayname') {
+        return decodeURIComponent(node.data('extra')[extraField])
+      }
+    }
+  }
+  return decodeURIComponent(node.data(labelField))
 }

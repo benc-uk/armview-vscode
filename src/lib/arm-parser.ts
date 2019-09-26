@@ -7,11 +7,13 @@
 
 import * as utils from './utils';
 import * as path from 'path';
+import * as url from 'url';
 import axios from 'axios';
 import TelemetryReporter from 'vscode-extension-telemetry';
 import * as stripJsonComments from 'strip-json-comments';
 const stripBom = require('strip-bom');
 const jsonlint = require('jsonlint');
+import * as vscode from 'vscode';
 
 class ARMParser {
   template: any;
@@ -19,82 +21,62 @@ class ARMParser {
   currentExpression: any;
   currentResource: any;
   elements: any[];
-  proc: number;
   extensionPath: string;
   reporter: TelemetryReporter | undefined;
+  editor: vscode.TextEditor | undefined
   
   //
-  // Load and parse a ARM template from given string
+  // Create a new ARM Parser
   //
-  constructor(extensionPath: string, reporter?: TelemetryReporter) {
-    console.log('### ArmView: Start parsing JSON template...');
+  constructor(extensionPath: string, reporter?: TelemetryReporter, editor?: vscode.TextEditor) {
     this.template = null;
     this.error = null;
     this.currentExpression = null;
     this.elements = [];
-    this.extensionPath = extensionPath
-    this.proc = 0;
-
-    if(reporter) 
-      this.reporter = reporter
+    this.extensionPath = extensionPath;
+    this.reporter = reporter;
+    this.editor = editor;
   }
 
+  //
+  // Load and parse a ARM template from given string
+  //
   async parse(templateJSON: string): Promise<any[]> {
-    return new Promise(async (resolve, reject) => {
-      // Try to parse JSON file
-      try {
-        // Strip out BOM characters for those mac owning weirdos
-        templateJSON = stripBom(templateJSON); 
-        // ARM templates do allow comments, but it's not part of the JSON spec 
-        templateJSON = stripJsonComments(templateJSON); 
+    console.log('### ArmView: Start parsing JSON template...');
 
-        // Switched to jsonlint for more meaningful error messages
-        this.template = jsonlint.parse(templateJSON);
-      } catch(err) {
-        err.message = "This file is not valid JSON, please correct the errors below\n\n" + err.message
-        this.error = err; //e.message;
-        reject(this.error);
-      }
+    // Try to parse JSON file
+    try {
+      // Strip out BOM characters for those mac owning weirdos
+      templateJSON = stripBom(templateJSON); 
+      // ARM templates do allow comments, but it's not part of the JSON spec 
+      templateJSON = stripJsonComments(templateJSON); 
 
-      // Some simple ARM validation
-      if(!this.template.resources || !this.template.$schema) {
-        this.error = new Error("File doesn't appear to be an ARM template, but is valid JSON");
-        reject(this.error);      
-      }
-          
-      // First pass, fix types and assign ids with a hash function
-      this._preProcess(this.template.resources, null);
-      if(this.error) reject(this.error);
-      console.log(`### ArmView: Pre-process pass complete`);
+      // Switched to jsonlint for more meaningful error messages
+      this.template = jsonlint.parse(templateJSON);
+    } catch(err) {
+      err.message = "This file is not valid JSON, please correct the errors below\n\n" + err.message
+      throw err;
+    }
 
-      // 2nd pass, work on resources
-      await this._processResources(this.template.resources);
-      if(this.error) reject(this.error);
-      console.log(`### ArmView: Parsing complete, found ${this.elements.length} elements in template`);
+    // Some simple ARM validation
+    if(!this.template.resources || !this.template.$schema) {
+      throw new Error("File doesn't appear to be an ARM template, but is valid JSON");      
+    }
+        
+    // First pass, fix types and assign ids with a hash function
+    this._preProcess(this.template.resources, null);
+    if(this.error) throw this.error;
+    console.log(`### ArmView: Pre-process pass complete`);
 
-      resolve(this.elements)
-      //if(this.error) reject(this.error)
-    })
+    // 2nd pass, work on resources
+    await this._processResources(this.template.resources);
+    if(this.error) throw this.error;
+    console.log(`### ArmView: Parsing complete, found ${this.elements.length} elements in template`);
+
+    // return result elements
+    return this.elements;
   }
 
-  //
-  // Call this to get the parsed result, a set of elements to display in Cytoscape
-  //
-  // getResult() {
-  //   console.log(this.proc);
-    
-  //   // while(this.proc > 0) {
-  //   //   console.log("WAITING");
-  //   // }
-  //   return this.elements;
-  // }
-
-  //
-  // Get error message, if any
-  //
-  getError() {
-    return this.error;
-  }
 
   //
   // Get last parsed expression, if any
@@ -192,7 +174,7 @@ class ARMParser {
   // Main function to parse a resource, this will recurse into nested resources
   //
   private async _processResources(resources: any[]) {
-    resources.forEach(async res => {
+    for(let res of resources) {
       try {
         this.currentResource = res.type + ": " + res.name
         let extraData: any;
@@ -239,8 +221,8 @@ class ARMParser {
         }
   
         // For nested/linked templates
+        let linkedDeployment: boolean = false;
         if(res.type == 'microsoft.resources/deployments' && res.properties.templateLink) {
-          this.proc++;
           let linkUri = res.properties.templateLink.uri;
           let match = linkUri.match(/^\[(.*)\]$/);
           if(match) {
@@ -249,23 +231,63 @@ class ARMParser {
           extraData['template-url'] = linkUri;
 
           // OK let's try to handle linked templates shall we? O_O
-          // Make a request for a user with a given ID
-          console.log("FETCHING!!!!!!!! " + linkUri);
-          let result = await axios({ url: linkUri, responseType: 'text' })
+          console.log("!!! Url: " + linkUri);
 
-          let subTemplate = JSON.stringify(result.data);
-          let subParser = new ARMParser(this.extensionPath, this.reporter); 
-          let linkRes = await subParser.parse(subTemplate);
-          //let linkRes = subParser.getResult();
-          //console.log("DATA   !!!!!!!! " + subTemplate);
-          console.log("PARSED !!!!!!!! " + JSON.stringify(linkRes));
-          
-          for(let r of linkRes) {
-            console.log(r);
-            this.elements.push(r);
+          let subTemplate = "";
+          try {
+            // If we're REALLY lucky it will be an accessible public URL
+            let result = await axios({ url: linkUri, responseType: 'text' })
+            // Only required due to a bug in axios https://github.com/axios/axios/issues/907
+            subTemplate = JSON.stringify(result.data);
+          } catch(err) {
+            console.log(`!!! URL NOT ACCESSIBLE ${linkUri}`);
+
+            // That failed, in most cases we'll end up here 
+
+            if(vscode.workspace && this.editor) {
+              console.log("SEARCHING FROM: "+ this.editor.document.uri.fsPath)
+              console.log("SEARCH FA: " + path.dirname(this.editor.document.uri.fsPath));
+              console.log("REL: " + vscode.workspace.asRelativePath(this.editor.document.uri));
+              let rel = vscode.workspace.asRelativePath(this.editor.document.uri)
+
+              //var parsed = url.parse("http://example.com:8080/test/someFile.txt/?attr=100");
+              console.log("FILE: " + path.basename(linkUri));
+              let file = path.basename(linkUri)
+              file = file.replace('{_artifactsLocationSasToken}', '')
+
+              let dir = path.dirname(rel).split(path.sep).pop();
+              console.log("DIR: "+dir);
+              
+              let files = await vscode.workspace.findFiles(`${dir}/**/${file}`)
+              if(files && files.length > 0) {
+                let s = await vscode.workspace.fs.readFile(files[0])
+                subTemplate = s.toString()
+              }
+   
+            }
           }
-          console.log(this.elements);
-          this.proc--;
+
+          // If we've got some actual data
+          if(subTemplate) {
+            let subParser = new ARMParser(this.extensionPath, this.reporter); 
+            try {
+              let linkRes = await subParser.parse(subTemplate);
+              console.log("!!! URL FETCHED !!!");
+              
+              // This means we successfully resolved/loaded the linked deployment
+              linkedDeployment = true
+              
+              for(let r of linkRes) {
+                // This puts these sub-resources into the group
+                r.data.parent = res.id;
+                // Push linked resources into the main list
+                this.elements.push(r);
+              }  
+            } catch(err) {
+              // linked template parsing error here
+            }
+          }   
+          
         }
   
         // Process resource tags, can be objects or strings
@@ -274,6 +296,8 @@ class ARMParser {
             let tagval = res.tags[tagname];
             tagval = utils.encode(this._evalExpression(tagval));
             tagname = utils.encode(this._evalExpression(tagname));
+
+            // Store tags in 'extra' node data
             extraData['Tag ' + tagname] = tagval;  
           })
         } else if(res.tags && typeof res.tags == "string") {
@@ -286,6 +310,8 @@ class ARMParser {
             let skuval = res.sku[skuname];
             skuval = utils.encode(this._evalExpression(skuval));
             skuname = utils.encode(this._evalExpression(skuname));
+
+            // Store SKU details in 'extra' node data
             extraData['SKU ' + skuname] = skuval;  
           });
         } else if(res.sku && typeof res.sku == "string") {
@@ -321,8 +347,8 @@ class ARMParser {
           }
         }      
   
-        // Stick resource node in resulting elements list
-        this.elements.push({
+        // Create the node for Cytoscape, basically this is WHY WE ARE HERE!
+        let resNode: any = {
           group: "nodes",
           data: {
             id: res.id,
@@ -334,7 +360,23 @@ class ARMParser {
             location: utils.encode(res.location),
             extra: extraData
           }
-        });
+        }
+
+        if(!linkedDeployment) {
+          // Stick resource node in resulting elements list
+          this.elements.push(resNode);
+        } else {
+          // This is a special group/container node for linked templates
+          // We give it same name/label as the 'deployments' resource would have
+          this.elements.push({ 
+            group: "nodes", 
+            data: { 
+              name: utils.encode(res.name),
+              label: label,
+              id: res.id
+            } 
+          })
+        }
   
         // Serious business - find the dependencies between resources
         if(res.dependsOn) {
@@ -358,9 +400,9 @@ class ARMParser {
           await this._processResources(res.resources);
         }        
       } catch (err) {
-        this.error = err; //`Unable to process ARM resources, template is probably invalid. ${ex}`
+        this.error = err;  //`Unable to process ARM resources, template is probably invalid. ${ex}`
       }
-    })    
+    } // end for
   }
 
   //

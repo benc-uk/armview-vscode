@@ -153,12 +153,12 @@ async function refreshView() {
 
 		// Parse the source template JSON
 		let templateJSON = editor.document.getText();
-		var parser = new ARMParser(extensionPath, reporter);    
-		let result = await parser.parse(templateJSON)
-
-		// Check for errors - if it's not JSON or a valid ARM template
-		let err = parser.getError()
-    if(err) {
+		var parser = new ARMParser(extensionPath, reporter, editor);    
+		try {
+			let result = await parser.parse(templateJSON);			
+			reporter.sendTelemetryEvent('parsedOK', {'nodeCount': result.length.toString(), 'filename': editor.document.fileName});
+			panel.webview.postMessage({ command: 'refresh', payload: result });
+		} catch(err) {
 			console.log('### ArmView: ERROR STACK: ' + err.stack)
 			reporter.sendTelemetryEvent('parseError', {'error': err, 'filename': editor.document.fileName});
 			panel.webview.postMessage({ 
@@ -167,11 +167,6 @@ async function refreshView() {
 					"\n\nTriggering expression: " + parser.getLastExpression() +
 					"\n\nTriggering resource: " + parser.getLastResource()
 			})
-		}	else {
-			// Send result as message
-			//let result = await parser.getResult();
-			reporter.sendTelemetryEvent('parsedOK', {'nodeCount': result.length.toString(), 'filename': editor.document.fileName});
-			panel.webview.postMessage({ command: 'refresh', payload: result });
 		}
 	} else {
 		vscode.window.showErrorMessage("No editor active, open a ARM template JSON file in the editor")
