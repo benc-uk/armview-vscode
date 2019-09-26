@@ -137,7 +137,7 @@ export function activate(context: vscode.ExtensionContext) {
 //
 // Refresh contents of the view
 //
-function refreshView() {
+async function refreshView() {
 	// Reset timers for typing updates
 	refreshedTime = Date.now();
 	typingTimeout = undefined;
@@ -153,7 +153,8 @@ function refreshView() {
 
 		// Parse the source template JSON
 		let templateJSON = editor.document.getText();
-    var parser = new ARMParser(templateJSON, extensionPath, reporter);    
+		var parser = new ARMParser(extensionPath, reporter);    
+		let result = await parser.parse(templateJSON)
 
 		// Check for errors - if it's not JSON or a valid ARM template
 		let err = parser.getError()
@@ -168,7 +169,7 @@ function refreshView() {
 			})
 		}	else {
 			// Send result as message
-			let result = parser.getResult();
+			//let result = await parser.getResult();
 			reporter.sendTelemetryEvent('parsedOK', {'nodeCount': result.length.toString(), 'filename': editor.document.fileName});
 			panel.webview.postMessage({ command: 'refresh', payload: result });
 		}

@@ -2,7 +2,7 @@
 	"name": "armview",
 	"displayName": "ARM Template Viewer",
 	"description": "Graphically display ARM templates in an interactive map view",
-	"version": "0.0.9",
+	"version": "0.0.10",
 	"icon": "assets/img/icons/main.png",
 	"publisher": "bencoleman",
 	"author": {
@@ -88,6 +88,7 @@
 		"test": "ts-mocha ./tests/test-all-quickstarts.ts"
 	},
 	"dependencies": {
+		"axios": "^0.19.0",
 		"jsonlint": "^1.6.3",
 		"strip-bom": "^3.0.0",
 		"strip-json-comments": "^3.0.1",

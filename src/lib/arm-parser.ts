@@ -5,13 +5,13 @@
 // Modified & updated for VS Code extension. Converted (crudely) to TypeScript, Oct 2019
 //
 
-import * as utils from './utils'
+import * as utils from './utils';
 import * as path from 'path';
+import axios from 'axios';
 import TelemetryReporter from 'vscode-extension-telemetry';
 import * as stripJsonComments from 'strip-json-comments';
 const stripBom = require('strip-bom');
 const jsonlint = require('jsonlint');
-
 
 class ARMParser {
   template: any;
@@ -19,61 +19,75 @@ class ARMParser {
   currentExpression: any;
   currentResource: any;
   elements: any[];
+  proc: number;
   extensionPath: string;
   reporter: TelemetryReporter | undefined;
   
   //
   // Load and parse a ARM template from given string
   //
-  constructor(templateJSON: string, extensionPath: string, reporter?: TelemetryReporter) {
+  constructor(extensionPath: string, reporter?: TelemetryReporter) {
     console.log('### ArmView: Start parsing JSON template...');
     this.template = null;
     this.error = null;
     this.currentExpression = null;
     this.elements = [];
     this.extensionPath = extensionPath
+    this.proc = 0;
 
     if(reporter) 
       this.reporter = reporter
-    
-    // Try to parse JSON file
-    try {
-      // Strip out BOM characters for those mac owning weirdos
-      templateJSON = stripBom(templateJSON); 
-      // ARM templates do allow comments, but it's not part of the JSON spec 
-      templateJSON = stripJsonComments(templateJSON); 
+  }
 
-      // Switched to jsonlint for more meaningful error messages
-      this.template = jsonlint.parse(templateJSON);
-    } catch(err) {
-      err.message = "This file is not valid JSON, please correct the errors below\n\n" + err.message
-      this.error = err; //e.message;
-      return;
-    }
+  async parse(templateJSON: string): Promise<any[]> {
+    return new Promise(async (resolve, reject) => {
+      // Try to parse JSON file
+      try {
+        // Strip out BOM characters for those mac owning weirdos
+        templateJSON = stripBom(templateJSON); 
+        // ARM templates do allow comments, but it's not part of the JSON spec 
+        templateJSON = stripJsonComments(templateJSON); 
 
-    // Some simple ARM validation
-    if(!this.template.resources || !this.template.$schema) {
-      this.error = new Error("File doesn't appear to be an ARM template, but is valid JSON");
-      return;      
-    }
-        
-    // First pass, fix types and assign ids with a hash function
-    this._preProcess(this.template.resources, null);
-    if(this.error) return;
-    console.log(`### ArmView: Pre-process pass complete`);
+        // Switched to jsonlint for more meaningful error messages
+        this.template = jsonlint.parse(templateJSON);
+      } catch(err) {
+        err.message = "This file is not valid JSON, please correct the errors below\n\n" + err.message
+        this.error = err; //e.message;
+        reject(this.error);
+      }
 
-    // 2nd pass, work on resources
-    this._processResources(this.template.resources);
-    if(this.error) return;
-    console.log(`### ArmView: Parsing complete, found ${this.elements.length} elements in template`);
+      // Some simple ARM validation
+      if(!this.template.resources || !this.template.$schema) {
+        this.error = new Error("File doesn't appear to be an ARM template, but is valid JSON");
+        reject(this.error);      
+      }
+          
+      // First pass, fix types and assign ids with a hash function
+      this._preProcess(this.template.resources, null);
+      if(this.error) reject(this.error);
+      console.log(`### ArmView: Pre-process pass complete`);
+
+      // 2nd pass, work on resources
+      await this._processResources(this.template.resources);
+      if(this.error) reject(this.error);
+      console.log(`### ArmView: Parsing complete, found ${this.elements.length} elements in template`);
+
+      resolve(this.elements)
+      //if(this.error) reject(this.error)
+    })
   }
 
   //
   // Call this to get the parsed result, a set of elements to display in Cytoscape
   //
-  getResult() {
-    return this.elements;
-  }
+  // getResult() {
+  //   console.log(this.proc);
+    
+  //   // while(this.proc > 0) {
+  //   //   console.log("WAITING");
+  //   // }
+  //   return this.elements;
+  // }
 
   //
   // Get error message, if any
@@ -177,8 +191,8 @@ class ARMParser {
   //
   // Main function to parse a resource, this will recurse into nested resources
   //
-  private _processResources(resources: any[]) {
-    resources.forEach(res => {
+  private async _processResources(resources: any[]) {
+    resources.forEach(async res => {
       try {
         this.currentResource = res.type + ": " + res.name
         let extraData: any;
@@ -226,12 +240,32 @@ class ARMParser {
   
         // For nested/linked templates
         if(res.type == 'microsoft.resources/deployments' && res.properties.templateLink) {
+          this.proc++;
           let linkUri = res.properties.templateLink.uri;
           let match = linkUri.match(/^\[(.*)\]$/);
           if(match) {
             linkUri = this._evalExpression(match[1]);
           }  
-          extraData['template-url'] = linkUri;//this._evalExpression(res.properties.templateLink.uri);
+          extraData['template-url'] = linkUri;
+
+          // OK let's try to handle linked templates shall we? O_O
+          // Make a request for a user with a given ID
+          console.log("FETCHING!!!!!!!! " + linkUri);
+          let result = await axios({ url: linkUri, responseType: 'text' })
+
+          let subTemplate = JSON.stringify(result.data);
+          let subParser = new ARMParser(this.extensionPath, this.reporter); 
+          let linkRes = await subParser.parse(subTemplate);
+          //let linkRes = subParser.getResult();
+          //console.log("DATA   !!!!!!!! " + subTemplate);
+          console.log("PARSED !!!!!!!! " + JSON.stringify(linkRes));
+          
+          for(let r of linkRes) {
+            console.log(r);
+            this.elements.push(r);
+          }
+          console.log(this.elements);
+          this.proc--;
         }
   
         // Process resource tags, can be objects or strings
@@ -321,7 +355,7 @@ class ARMParser {
   
         // Now recurse into nested resources
         if(res.resources) {
-          this._processResources(res.resources);
+          await this._processResources(res.resources);
         }        
       } catch (err) {
         this.error = err; //`Unable to process ARM resources, template is probably invalid. ${ex}`

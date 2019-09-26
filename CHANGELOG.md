@@ -1,4 +1,7 @@
-## 0.0.9
+## 0.0.10
+- Initial basic support for linked templates
+
+- ## 0.0.9
 - Many fixes to parameter & variable resolution
 - Improved error messages and logging
 - Tested successfully against ALL templates on https://github.com/Azure/azure-quickstart-templates
