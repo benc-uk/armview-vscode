@@ -39,7 +39,7 @@ export function activate(context: vscode.ExtensionContext) {
 				vscode.window.showErrorMessage("No editor active, open a ARM template JSON file in the editor");
 				return;
 			} else {
-				if(vscode.window.activeTextEditor.document.languageId != "json") {
+				if(!(vscode.window.activeTextEditor.document.languageId == "json" || vscode.window.activeTextEditor.document.languageId == "arm-template")) {
 					vscode.window.showErrorMessage("Current file is not JSON");
 					return;
 				}
@@ -148,7 +148,7 @@ async function refreshView() {
 
 	if(editor) {
 		// Skip non-JSON
-		if(editor.document.languageId != "json" && editor.document.languageId != "arm-template") {
+		if(!(editor.document.languageId == "json" || editor.document.languageId == "arm-template")) {
 			return;
 		}
 

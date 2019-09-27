@@ -102,7 +102,6 @@
 		"mocha": "^6.2.0",
 		"strip-bom": "^3.0.0",
 		"ts-loader": "^6.1.2",
-		"ts-mocha": "^6.0.0",
 		"tslint": "^5.16.0",
 		"typescript": "^3.5.1"
 	}

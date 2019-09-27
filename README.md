@@ -33,15 +33,16 @@ Extension as been tested successfully against all 890+ [Azure Quickstart Templat
 - Click 'LAYOUT' button to re-layout icons in default way
 
 ## Linked Templates
-Notes:
-- If the linked template URL is accessible, it will be downloaded and used.
-- If the URL is not accessible, then the local filesystem of the VS Code workspace will be searched for the file. Some assumptions are made:
+The extension will attempt to locate and display linked templates, these resources will be shown grouped together in a shaded box. Linked template support is at an early stage, and comes with some limitations. This is an outline of how it works:
+- If the resolved linked template URL is externally accessible, it will be downloaded and used.
+- If the URL is not accessible, then the local filesystem of the VS Code workspace will be searched for the file. Some assumptions are made in this search:
   - The linked template file must end '.json'
-  - The linked template file is located somewhere under the path of the main template, sub-folders will be searched. If the file resides elsewhere outside this path it will not be located.
+  - The linked template file should located somewhere under the path of the main template, sub-folders will be searched. If the file resides elsewhere outside this path it will not be located.
   - The first matching file will be used. This is only a problem if you have multiple linked templates with the same file names but in different sub-folders, this is considered a rare edge case and will not be addressed.
+- If linked template URL or filename is dynamic based on template parameters it is very likely not to resolve, and will not be found.
 - If the linked template can not be located/loaded then a icon representing the deployment will be shown as a fallback.
-- If linked template URL or filename is dynamic and based on template parameters it
-- Nested templates are not supported, these are rarely used
+- Currently there is no cache for data fetched from external URLs
+- The layout of the icons/resources can initially be a bit strange, and will require some manual tidy up to look good. I'm investigating how to improve this.
 
 # Notes
 This is a port of a older *ARM Viewer* project, which was a standalone Node.js webapp https://github.com/benc-uk/azure-armviewer
