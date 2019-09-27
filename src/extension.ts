@@ -9,12 +9,13 @@ import * as path from 'path';
 import ARMParser from './lib/arm-parser';
 import TelemetryReporter from 'vscode-extension-telemetry';
 
-// all events will be prefixed with this event name
+// Set up telemetry logging
 const pjson = require('../package.json');
 const telemetryExtensionId = pjson.publisher + "." + pjson.name;
 const telemetryExtensionVersion = pjson.version; 
 const telemetryKey = '0e2a6ba6-6c52-4e94-86cf-8dc87830e82e'; 
 
+// Main globals
 var panel: vscode.WebviewPanel | undefined = undefined;
 var extensionPath: string;
 var editor: vscode.TextEditor;
@@ -28,24 +29,24 @@ var typingTimeout: any;
 // Main extension activation
 //
 export function activate(context: vscode.ExtensionContext) {
-	extensionPath = context.extensionPath
+	extensionPath = context.extensionPath;
 
   context.subscriptions.push(
     vscode.commands.registerCommand('armView.start', () => {
 			// Check for open editors that are showing JSON
 			// These are safe guards, the `when` clauses in package.json should prevent this
 			if(!vscode.window.activeTextEditor) {
-				vscode.window.showErrorMessage("No editor active, open a ARM template JSON file in the editor")
+				vscode.window.showErrorMessage("No editor active, open a ARM template JSON file in the editor");
 				return;
 			} else {
 				if(vscode.window.activeTextEditor.document.languageId != "json") {
-					vscode.window.showErrorMessage("Current file is not JSON")
+					vscode.window.showErrorMessage("Current file is not JSON");
 					return;
 				}
 			}
 			
 			// Store the active editor at start
-			editor = vscode.window.activeTextEditor
+			editor = vscode.window.activeTextEditor;
 
 			if (panel) {
 				// If we already have a panel, show it
@@ -147,13 +148,13 @@ async function refreshView() {
 
 	if(editor) {
 		// Skip non-JSON
-		if(editor.document.languageId != "json") {
+		if(editor.document.languageId != "json" && editor.document.languageId != "arm-template") {
 			return;
 		}
 
 		// Parse the source template JSON
 		let templateJSON = editor.document.getText();
-		var parser = new ARMParser(extensionPath, reporter, editor);    
+		var parser = new ARMParser(extensionPath, "main", reporter, editor);    
 		try {
 			let result = await parser.parse(templateJSON);			
 			reporter.sendTelemetryEvent('parsedOK', {'nodeCount': result.length.toString(), 'filename': editor.document.fileName});
@@ -182,7 +183,7 @@ function getWebviewContent() {
 	reporter.sendTelemetryEvent('activated', {'workspace': wsname});
 
 	if(!panel)
-		return ""
+		return "";
 
 	const mainScriptUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'js', 'main.js')));
 	const mainCss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'css', 'main.css')));

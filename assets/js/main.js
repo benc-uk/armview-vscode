@@ -18,7 +18,7 @@ function init(prefix) {
   iconPrefix = prefix
   hideInfo();
 
-  // Important step initializes cytoscape
+  // Important step initializes main Cytoscape object 'cy'
   cy = cytoscape({ 
     container: document.getElementById('mainview'),
     wheelSensitivity: 0.15,
@@ -169,7 +169,7 @@ function reLayout() {
     'background-opacity': 0.2
   });
 
-  // Removed for now
+  // Set up snap to grid
   cy.snapToGrid({gridSpacing: 200, lineWidth: 3, drawGrid: false});
   if(settingSnap)
     cy.snapToGrid('snapOn');
@@ -200,10 +200,11 @@ function toggleLabels() {
 // Hide the infobox, use CSS transitions, so we slide it hidden to right
 //
 function hideInfo() {
-  let w = document.getElementById("infobox").offsetWidth
-  if(!w || w <= 0)
-    w = 200; // This is a guess, but only used first time infobox is shown
-  document.getElementById('infobox').style.right = `-${w}px`
+  let width = document.getElementById("infobox").offsetWidth
+  if(!width || width <= 0)
+  width = 200; // This is a guess, but only used first time infobox is shown
+  width += 20
+  document.getElementById('infobox').style.right = `-${width}px`
   infoShown = false;
 }
 
@@ -234,6 +235,9 @@ window.addEventListener("resize", function() {
   }
 });
 
+//
+// Switch snap to grid on or off
+//
 function toggleSnap() {
   settingSnap = !settingSnap; 
   if(settingSnap) {
@@ -246,8 +250,11 @@ function toggleSnap() {
   }  
 }
 
+//
+// Get label for resource
+//
 function getLabel(node) {
-  // Special case - if resource has displayname tag
+  // Special case - if resource has displayName tag
   if(labelField == 'name') {
     for(let extraField in node.data('extra')) {
       if(extraField.toLowerCase() == 'tag displayname') {

@@ -5,8 +5,7 @@
 		"outDir": "out",
 		"sourceMap": true,
 		"strict": true,
-		"rootDir": "src",
-		"allowJs": false
+		"rootDir": "src"
 	},
-	"exclude": ["node_modules", "out", "tests"]
+	"exclude": ["node_modules", "test"]
 }

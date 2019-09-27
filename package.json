@@ -2,7 +2,7 @@
 	"name": "armview",
 	"displayName": "ARM Template Viewer",
 	"description": "Graphically display ARM templates in an interactive map view",
-	"version": "0.0.10",
+	"version": "0.1.0",
 	"icon": "assets/img/icons/main.png",
 	"publisher": "bencoleman",
 	"author": {
@@ -52,21 +52,21 @@
 			"editor/title": [
 				{
 					"command": "armView.start",
-					"when": "editorLangId == json",
+					"when": "editorLangId == json || editorLangId == arm-template",
 					"group": "navigation"
 				}
 			],
 			"editor/title/context": [
 				{
 					"command": "armView.start",
-					"when": "editorLangId == json",
+					"when": "editorLangId == json || editorLangId == arm-template",
 					"group": "navigation"
 				}
 			],
 			"commandPalette": [
 				{
 					"command": "armView.start",
-					"when": "editorLangId == json",
+					"when": "editorLangId == json || editorLangId == arm-template",
 					"group": "navigation"
 				}
 			]
@@ -76,7 +76,7 @@
 				"command": "armView.start",
 				"key": "ctrl+alt+q",
 				"mac": "cmd+alt+q",
-				"when": "editorLangId == json"
+				"when": "editorLangId == json || editorLangId == arm-template"
 			}
 		]
 	},
@@ -85,7 +85,7 @@
 		"compile": "tsc -p ./",
 		"lint": "tslint -p ./",
 		"watch": "tsc -w -p ./",
-		"test": "ts-mocha ./tests/test-all-quickstarts.ts"
+		"test": "mocha --timeout 20000 test/quickstart-test.js"
 	},
 	"dependencies": {
 		"axios": "^0.19.0",

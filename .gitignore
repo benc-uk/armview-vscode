@@ -64,3 +64,5 @@ typings/
 out/
 *.vsix
 tests/*.json
+test/azure-quickstart-templates-master/**
+test/master.zip

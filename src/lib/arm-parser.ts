@@ -7,13 +7,12 @@
 
 import * as utils from './utils';
 import * as path from 'path';
-import * as url from 'url';
 import axios from 'axios';
 import TelemetryReporter from 'vscode-extension-telemetry';
 import * as stripJsonComments from 'strip-json-comments';
 const stripBom = require('strip-bom');
-const jsonlint = require('jsonlint');
-import * as vscode from 'vscode';
+const jsonLint = require('jsonlint');
+import { TextEditor } from 'vscode';
 
 class ARMParser {
   template: any;
@@ -23,12 +22,13 @@ class ARMParser {
   elements: any[];
   extensionPath: string;
   reporter: TelemetryReporter | undefined;
-  editor: vscode.TextEditor | undefined
+  editor: TextEditor | undefined;
+  name: string;
   
   //
   // Create a new ARM Parser
   //
-  constructor(extensionPath: string, reporter?: TelemetryReporter, editor?: vscode.TextEditor) {
+  constructor(extensionPath: string, name: string, reporter?: TelemetryReporter, editor?: TextEditor) {
     this.template = null;
     this.error = null;
     this.currentExpression = null;
@@ -36,13 +36,14 @@ class ARMParser {
     this.extensionPath = extensionPath;
     this.reporter = reporter;
     this.editor = editor;
+    this.name = name;
   }
 
   //
   // Load and parse a ARM template from given string
   //
   async parse(templateJSON: string): Promise<any[]> {
-    console.log('### ArmView: Start parsing JSON template...');
+    console.log(`### ArmView: Start parsing JSON template: ${this.name}`);
 
     // Try to parse JSON file
     try {
@@ -52,7 +53,7 @@ class ARMParser {
       templateJSON = stripJsonComments(templateJSON); 
 
       // Switched to jsonlint for more meaningful error messages
-      this.template = jsonlint.parse(templateJSON);
+      this.template = jsonLint.parse(templateJSON);
     } catch(err) {
       err.message = "This file is not valid JSON, please correct the errors below\n\n" + err.message
       throw err;
@@ -157,7 +158,7 @@ class ARMParser {
           res.type = res.type.toLowerCase();
 
         // Assign a hashed id & full qualified name
-        res.id = utils.hashCode(res.type + '_' + res.name);
+        res.id = utils.hashCode(this.name + '_' + res.type + '_' + res.name);
         res.fqn = res.type + '/' + res.name;
         
         // Recurse into nested resources
@@ -220,8 +221,8 @@ class ARMParser {
           }
         }
   
-        // For nested/linked templates
-        let linkedDeployment: boolean = false;
+        // For linked templates
+        let linkedNodeCount: number = 0;
         if(res.type == 'microsoft.resources/deployments' && res.properties.templateLink) {
           let linkUri = res.properties.templateLink.uri;
           let match = linkUri.match(/^\[(.*)\]$/);
@@ -231,7 +232,7 @@ class ARMParser {
           extraData['template-url'] = linkUri;
 
           // OK let's try to handle linked templates shall we? O_O
-          console.log("!!! Url: " + linkUri);
+          console.log("### ArmView: Processing linked template: " + linkUri);
 
           let subTemplate = "";
           try {
@@ -239,57 +240,66 @@ class ARMParser {
             let result = await axios({ url: linkUri, responseType: 'text' })
             // Only required due to a bug in axios https://github.com/axios/axios/issues/907
             subTemplate = JSON.stringify(result.data);
+            console.log("### ArmView: Linked template was fetched from external URL");
           } catch(err) {
-            console.log(`!!! URL NOT ACCESSIBLE ${linkUri}`);
-
             // That failed, in most cases we'll end up here 
+            console.log("### ArmView: URL not available, will search filesystem");
 
-            if(vscode.workspace && this.editor) {
-              console.log("SEARCHING FROM: "+ this.editor.document.uri.fsPath)
-              console.log("SEARCH FA: " + path.dirname(this.editor.document.uri.fsPath));
-              console.log("REL: " + vscode.workspace.asRelativePath(this.editor.document.uri));
-              let rel = vscode.workspace.asRelativePath(this.editor.document.uri)
+            // This crazy code tries to search the loaded workspace for the file
+            // if(vscode.workspace && this.editor) {
+            if(this.editor) {
+              // Why do we do this? It lets us use ARMParser without VS Code
+              let vscode = await import('vscode'); // Voodoo argh! 
 
-              //var parsed = url.parse("http://example.com:8080/test/someFile.txt/?attr=100");
-              console.log("FILE: " + path.basename(linkUri));
-              let file = path.basename(linkUri)
-              file = file.replace('{_artifactsLocationSasToken}', '')
-
-              let dir = path.dirname(rel).split(path.sep).pop();
-              console.log("DIR: "+dir);
-              
-              let files = await vscode.workspace.findFiles(`${dir}/**/${file}`)
-              if(files && files.length > 0) {
-                let s = await vscode.workspace.fs.readFile(files[0])
-                subTemplate = s.toString()
+              let fileName = path.basename(linkUri)
+              let jsonFileExtension = fileName.lastIndexOf('.json')
+              if(jsonFileExtension > 0) {
+                // strip junk after file name, could be unresolved vars or other stuff
+                fileName = fileName.substr(0, jsonFileExtension+5);
+                let dir = path.dirname(vscode.workspace.asRelativePath(this.editor.document.uri)).split(path.sep).pop();
+                
+                let search = `**/${dir}/**/${fileName}`
+                if(dir == '.') search = `**/${fileName}`;
+                console.log("### ArmView: Looking for "+search);
+                let searchResult;
+                try {
+                  searchResult = await vscode.workspace.findFiles(search)
+ 
+                  if(searchResult && searchResult.length > 0) {
+                    console.log("### ArmView: Found & using file! "+searchResult[0]);
+                    let fileContent = await vscode.workspace.fs.readFile(searchResult[0])
+                    subTemplate = fileContent.toString()
+                  }
+                } catch(err) {
+                  console.log("### ArmView: Warn! Local file error: "+err);
+                }
               }
-   
             }
           }
 
-          // If we've got some actual data
+          // If we have some data in subTemplate we were success somehow reading the linked template
           if(subTemplate) {
-            let subParser = new ARMParser(this.extensionPath, this.reporter); 
-            try {
-              let linkRes = await subParser.parse(subTemplate);
-              console.log("!!! URL FETCHED !!!");
-              
-              // This means we successfully resolved/loaded the linked deployment
-              linkedDeployment = true
-              
-              for(let r of linkRes) {
-                // This puts these sub-resources into the group
-                r.data.parent = res.id;
-                // Push linked resources into the main list
-                this.elements.push(r);
-              }  
-            } catch(err) {
-              // linked template parsing error here
-            }
-          }   
-          
+            linkedNodeCount = await this._parseLinkedOrNested(res, subTemplate)
+          } else {
+            console.log("### ArmView: Warn! Unable to locate linked template");
+          }
         }
-  
+        
+        // For nested templates
+        if(res.type == 'microsoft.resources/deployments' && res.properties.template) {
+          let subTemplate;
+          try {
+            console.log("### ArmView: Processing nested template in: "+res.name);
+            subTemplate = JSON.stringify(res.properties.template)
+          } catch(err) {}
+
+          // If we have some data
+          if(subTemplate) {
+            linkedNodeCount = await this._parseLinkedOrNested(res, subTemplate)
+          } else {
+            console.log("### ArmView: Warn! Unable to parse nested template");
+          }
+        }
         // Process resource tags, can be objects or strings
         if(res.tags && typeof res.tags == "object") {
           Object.keys(res.tags).forEach(tagname => {
@@ -362,7 +372,7 @@ class ARMParser {
           }
         }
 
-        if(!linkedDeployment) {
+        if(linkedNodeCount == 0) {    
           // Stick resource node in resulting elements list
           this.elements.push(resNode);
         } else {
@@ -419,6 +429,36 @@ class ARMParser {
     })
   }
 
+  private async _parseLinkedOrNested(res: any, subTemplate: string): Promise<number> {
+    // If we've got some actual data, means we read the linked file somehow
+    if(subTemplate) {
+      let subParser = new ARMParser(this.extensionPath, res.name, this.reporter); 
+      try {
+        let linkRes = await subParser.parse(subTemplate);
+        
+        // This means we successfully resolved/loaded the linked deployment
+        //linkedNodeCount = linkRes.length
+        if(linkRes.length == 0) {
+          console.log("### ArmView: Warn! Linked template contained no resources!");
+        }
+        
+        for(let r of linkRes) {
+          // This puts these sub-resources into the group
+          r.data.parent = res.id;
+          // Push linked resources into the main list
+          this.elements.push(r);
+        }  
+
+        return linkRes.length
+      } catch(err) {
+        return 0
+        // linked template parsing error here
+      }
+    } else {
+      console.log("### ArmView: Warn! Unable to locate linked template");
+    }
+    return 0
+  }
   //
   // Main ARM expression parser, attempts to evaluate and resolve ARM expressions into strings
   //
@@ -567,7 +607,7 @@ class ARMParser {
           let evalResult = eval('val.' + propAccessor);
 
           if(typeof(evalResult) == 'undefined') {
-            console.log(`### ArmView: WARN! Your template contains invalid references: ${varName} -> ${propAccessor}`)
+            console.log(`### ArmView: Warn! Your template contains invalid references: ${varName} -> ${propAccessor}`)
             return "{undefined}";
           }
 
@@ -585,7 +625,7 @@ class ARMParser {
             return `{${JSON.stringify(evalResult)}}`
           }
         } catch(err) {
-          console.log(`### ArmView: WARN! Your template contains invalid references: ${varName} -> ${propAccessor}`)
+          console.log(`### ArmView: Warn! Your template contains invalid references: ${varName} -> ${propAccessor}`)
           return "{undefined}"
         }
       }
@@ -601,7 +641,7 @@ class ARMParser {
       // Fall back
       return val;
     } else {
-      console.log(`### ArmView: WARN! Your template contains invalid references: ${varName} -> ${propAccessor}`)
+      console.log(`### ArmView: Warn! Your template contains invalid references: ${varName} -> ${propAccessor}`)
       return "{undefined}";
     }
   }
