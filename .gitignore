@@ -62,7 +62,7 @@ typings/
 
 # VScode and TS specific
 out/
-*.vsix
+**.vsix
 tests/*.json
 test/azure-quickstart-templates-master/**
 test/master.zip
