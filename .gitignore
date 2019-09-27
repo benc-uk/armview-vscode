@@ -66,3 +66,4 @@ out/
 tests/*.json
 test/azure-quickstart-templates-master/**
 test/master.zip
+test/arm/**

@@ -130,6 +130,7 @@ class ARMParser {
             res.tags = this._evalExpression(match[1]);
           } 
         }     
+
         if(res.tags && typeof res.tags == "object") {
           Object.keys(res.tags).forEach(tagname => {
             let tagval = res.tags[tagname].toString();
@@ -184,7 +185,7 @@ class ARMParser {
         // Label is the last part of the resource type
         let label = res.type.replace(/^.*\//i, '');
   
-        // Workout which icon image to use, no way to catch missing images client side 
+        // Workout which icon image to use, no way to catch missing images client side so we do it here
         let img = '/img/arm/default.svg';
         let iconExists = require('fs').existsSync(path.join(this.extensionPath, `assets/img/arm/${res.type}.svg`))
         if(iconExists) {
@@ -221,19 +222,25 @@ class ARMParser {
           }
         }
   
-        // For linked templates
+        // For linked templates, oh boy, this is a whole world of pain
         let linkedNodeCount: number = 0;
         if(res.type == 'microsoft.resources/deployments' && res.properties.templateLink) {
           let linkUri = res.properties.templateLink.uri;
           let match = linkUri.match(/^\[(.*)\]$/);
           if(match) {
             linkUri = this._evalExpression(match[1]);
+
+            // Strip off everything after file extension, i.e. after ? or { characters
+            match = linkUri.match(/(.*?)($|\?|{)/);
+            if(match) {
+              linkUri = match[1]
+            }
           }  
           extraData['template-url'] = linkUri;
 
           // OK let's try to handle linked templates shall we? O_O
           console.log("### ArmView: Processing linked template: " + linkUri);
-
+           
           let subTemplate = "";
           try {
             // If we're REALLY lucky it will be an accessible public URL
@@ -245,28 +252,52 @@ class ARMParser {
             // That failed, in most cases we'll end up here 
             console.log("### ArmView: URL not available, will search filesystem");
 
-            // This crazy code tries to search the loaded workspace for the file
-            // if(vscode.workspace && this.editor) {
+            // This crazy code tries to search the loaded workspace for the file, two different ways
             if(this.editor) {
-              // Why do we do this? It lets us use ARMParser without VS Code
+              // Why do we do this? It lets us use this class without VS Code
               let vscode = await import('vscode'); // Voodoo argh! 
 
-              let fileName = path.basename(linkUri)
-              let jsonFileExtension = fileName.lastIndexOf('.json')
-              if(jsonFileExtension > 0) {
-                // strip junk after file name, could be unresolved vars or other stuff
-                fileName = fileName.substr(0, jsonFileExtension+5);
-                let dir = path.dirname(vscode.workspace.asRelativePath(this.editor.document.uri)).split(path.sep).pop();
+              // File name only of linked template, we'll need this a LOT
+              let fileName = path.basename(linkUri);
+
+              // Try to guess directory it is in (don't worry if it's very wrong, it might be)
+              let linkParts = linkUri.split('/');
+              let fileParentDir = linkParts[linkParts.length - 2];
+        
+              // Try loading the from the workspace - assume file is in `fileParentDir` sub-folder
+              // Most people store templates in a sub-folder and that sub-folder is included in the URL
+              if(fileParentDir) { 
+                // wsPath is local VS Code folder where the open editor doc is located
+                let wsPath = path.dirname(this.editor.document.uri.toString());
+                let filePath = `${wsPath}/${fileParentDir}/${fileName}`;
+                console.log(`### ArmView: Will try to load file: ${filePath}`);
                 
-                let search = `**/${dir}/**/${fileName}`
-                if(dir == '.') search = `**/${fileName}`;
-                console.log("### ArmView: Looking for "+search);
+                // Let's give it a try and see if it's there and loads
+                try {
+                  let fileContent = await vscode.workspace.fs.readFile(vscode.Uri.parse(`${wsPath}/${fileParentDir}/${fileName}`))
+                  subTemplate = fileContent.toString()
+                } catch(err) {
+                  // Do nothing, this is likely to fail a lot, that's ok
+                }
+              }
+
+              // Direct access didn't work, now try a glob search in workspace
+              let wsLocalFile = path.basename(vscode.workspace.asRelativePath(this.editor.document.uri));
+              // Only search if prev step failed and the filename we're looking for is NOT the same as the main template
+              if(!subTemplate && wsLocalFile != fileName) {
+                let wsLocalDir = path.dirname(vscode.workspace.asRelativePath(this.editor.document.uri)).split(path.sep).pop();
+
+                let search = `**/${wsLocalDir}/**/${fileName}`;
+                if(wsLocalDir == '.') search = `**/${fileName}`; // Handle case where folder is at root of ws
+                console.log(`### ArmView: That didn't work. So will search workspace for: ${search}`);
+                
+                // Try to run the search
                 let searchResult;
                 try {
                   searchResult = await vscode.workspace.findFiles(search)
- 
+
                   if(searchResult && searchResult.length > 0) {
-                    console.log("### ArmView: Found & using file! "+searchResult[0]);
+                    console.log(`### ArmView: Found & using file: ${searchResult[0]}`);
                     let fileContent = await vscode.workspace.fs.readFile(searchResult[0])
                     subTemplate = fileContent.toString()
                   }
@@ -277,7 +308,7 @@ class ARMParser {
             }
           }
 
-          // If we have some data in subTemplate we were success somehow reading the linked template
+          // If we have some data in subTemplate we were successful somehow reading the linked template!
           if(subTemplate) {
             linkedNodeCount = await this._parseLinkedOrNested(res, subTemplate)
           } else {
@@ -300,6 +331,7 @@ class ARMParser {
             console.log("### ArmView: Warn! Unable to parse nested template");
           }
         }
+
         // Process resource tags, can be objects or strings
         if(res.tags && typeof res.tags == "object") {
           Object.keys(res.tags).forEach(tagname => {
@@ -383,7 +415,9 @@ class ARMParser {
             data: { 
               name: utils.encode(res.name),
               label: label,
-              id: res.id
+              id: res.id,
+              img: img,
+              type: res.type,
             } 
           })
         }

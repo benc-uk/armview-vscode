@@ -1,9 +1,12 @@
+## 0.1.1
+- Several fixes & improvements to how linked templates are handled and searched for
+  
 ## 0.1.0
 - Support for linked & nested templates! See readme for limitations
 - Support for the new vscode-azurearmtools extension language server and 'ARM Template' language type
 - displayName tag if present will be used in place of the resource name
 
-- ## 0.0.9
+## 0.0.9
 - Many fixes to parameter & variable resolution
 - Improved error messages and logging
 - Tested successfully against ALL templates on https://github.com/Azure/azure-quickstart-templates

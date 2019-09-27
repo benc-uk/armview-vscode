@@ -123,7 +123,7 @@ function reLayout() {
 
   hideInfo();
 
-  // Style of nodes, i.e. resources
+  // Style of nodes, i.e. resources.
   cy.style().selector('node').style({
     'background-opacity': 0,
     'label': node => { return getLabel(node) },
@@ -162,11 +162,22 @@ function reLayout() {
 
   // Bounding box for groups
   cy.style().selector(':parent').style({
+    'background-image': null,
+    'label': node => { return getLabel(node) },
     'border-width': '4',
     'border-color': '#000',
     'border-opacity': 0.5,
     'background-color': '#000',
-    'background-opacity': 0.2
+    'background-opacity': 0.2,
+    'shape': 'roundrectangle',
+    'font-family': '"Segoe UI", Arial, Helvetica, sans-serif',
+    'font-size': '15vh',
+    'color': textColor,
+    'text-valign': 'bottom',
+    'text-margin-y': '10vh',
+    'font-size': '20%',
+    'text-outline-color': textColorOutline,
+    'text-outline-width': '4'    
   });
 
   // Set up snap to grid
