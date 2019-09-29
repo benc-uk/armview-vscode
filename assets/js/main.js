@@ -11,7 +11,6 @@ var infoShown = false;      // Is infobox displayed
 var labelField = 'label';   // Which field to show in labels
 var iconPrefix;             // Global prefix string appended to all icons
 var vscode;                 // VS Code API instance, can only be fetched once
-var filters;                // Global resource filters
 
 //
 // Initialize the Cytoscope container, and send message we're done
@@ -81,7 +80,7 @@ function init(prefix) {
 //
 // Called with new or refreshed data
 //
-function displayData(data) {
+function displayData(data, filters) {
   console.log("### ArmView: Displaying received data");
   cy.remove('*');
   cy.add(data);

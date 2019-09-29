@@ -34,10 +34,11 @@ body{
 }
 
 #statusbar {
-  width: 98%;
+  width: 97%;
+  display: block;
   bottom: 4px;
-  position: absolute;
-  z-index: 30;
+  position: fixed;
+  z-index: 500;
   color: var(--vscode-sideBarSectionHeader-foreground);
   background-color: var(--vscode-sideBarSectionHeader-background);
   padding: 4px;
@@ -45,14 +46,24 @@ body{
 }
 
 button {
+  display: inline-flex;
+  align-items: center; 
   background: none;
   color: var(--vscode-button-foreground);
   background-color: var(--vscode-button-background);
   border: none;
-  padding: 6px;
-  margin: 6px;
+  padding: 8px;
+  margin: 2px;
   border-radius: 3px;
-  width: 80px;
+  font-size: 95%;
+  min-width: 70px;
+  text-align: center;
+}
+
+button img {
+  width: 16px;
+  height: 16px;
+  display: inline;
 }
 
 button:hover {

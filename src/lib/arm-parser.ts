@@ -639,7 +639,6 @@ class ARMParser {
       // For parameters we access `defaultValue`
       if(source == this.template.parameters) {
         val = source[findKey].defaultValue;
-        console.log("^^^ PROP VAL "+val);
         // Without a defaultValue it is impossible to know what the parameters value could be!
         // So a fall-back out is to return the param name inside {}
         if(!val && val !== 0)

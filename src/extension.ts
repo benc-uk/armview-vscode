@@ -157,17 +157,17 @@ async function applyParameters() {
 
 	if(wsLocalDir) {
 		let paramFile = await vscode.window.showOpenDialog({defaultUri: vscode.Uri.file(wsLocalDir), canSelectMany: false, filters:{ JSON: ['json'] } } );
+
 		if(paramFile) {
 			let res  = await vscode.workspace.fs.readFile(paramFile[0]);
 			if(res) {
 				paramFileContent = res.toString();
 				let paramFileName = vscode.workspace.asRelativePath(paramFile[0]);
 				if(panel) panel.webview.postMessage({ command: 'paramFile', payload: paramFileName });
-			}
-
-			refreshView();
+			} 
 		}
 	}
+	refreshView();
 }
 
 //
@@ -262,18 +262,21 @@ function getWebviewContent() {
 	</div>
 
 	<div id="buttons">
-		<button onclick="toggleLabels()">LABELS</button>
-		<button onclick="cy.fit()">FIT</button>
-		<button onclick="toggleSnap()" id="snapbut">SNAP</button>
-		<button onclick="reLayout()">LAYOUT</button>
-		<button onclick="applyParameters()">PARAMS</button>
-		<button onclick="reload()">RELOAD</button>
-		<button onclick="applyFilters()">FILTERS</button>
+		<button onclick="toggleLabels()"><img src="${prefix}/img/toolbar/labels.svg">&nbsp;  Labels</button>
+		<button onclick="cy.fit()"><img src="${prefix}/img/toolbar/fit.svg">&nbsp; Re-fit</button>
+		<button onclick="toggleSnap()" id="snapbut"><img src="${prefix}/img/toolbar/snap.svg">&nbsp; Snap</button>
+		<button onclick="reLayout()"><img src="${prefix}/img/toolbar/layout.svg">&nbsp; Layout</button>
+		&nbsp;&nbsp;	
+		<button onclick="applyParameters()"><img src="${prefix}/img/toolbar/params.svg">&nbsp; Params</button>
+		<button onclick="applyFilters()"><img src="${prefix}/img/toolbar/filter.svg">&nbsp; Filter</button>
+		&nbsp;&nbsp;
+		<button onclick="reload()"><img src="${prefix}/img/toolbar/reload.svg">&nbsp; Reload</button>
 	</div>
 
-	<div class="loader">Loading...</div>
+	<div class="loader"></div>
 
 	<div id="mainview"></div>
+
 	<div id="statusbar">
 	  Objects: <span id="statusResCount">0</span> &nbsp | &nbsp
 		Snap to grid: <span id="statusSnap">Off</span> &nbsp | &nbsp
@@ -288,8 +291,9 @@ function getWebviewContent() {
       </table>
     </div>
 	</div>
-	
-	<script>	
+
+	<script>
+		var filters = "";
 		// Message handler in webview, messages are sent by extension
 		window.addEventListener('message', event => {
 			const message = event.data;
@@ -300,7 +304,7 @@ function getWebviewContent() {
 				document.getElementById('mainview').style.display = "block"
 				document.getElementById('buttons').style.display = "block"
 				document.getElementById('statusbar').style.display = "block"
-				displayData(message.payload);
+				displayData(message.payload, filters);
 			}
 
 			if(message.command == 'error') {
@@ -321,8 +325,12 @@ function getWebviewContent() {
 			}
 
 			if(message.command == 'filtersApplied') {
-				document.getElementById('statusFilters').innerHTML = message.payload
-				filters = message.payload
+				filters = message.payload;
+				if(filters == "" && !filters) {
+					document.getElementById('statusFilters').innerHTML = "none"
+				} else {
+					document.getElementById('statusFilters').innerHTML = filters
+				}
 			}			
 			
 			if(message.command == 'resCount') {
@@ -337,6 +345,7 @@ function getWebviewContent() {
 
 		function applyParameters() {
 			try {
+				document.getElementById('statusbar').style.display = "none"
 				document.getElementById('mainview').style.display = "none"
 				document.querySelector('.loader').style.display = "block"
 				vscode.postMessage({ command: 'applyParameters' });
@@ -347,6 +356,7 @@ function getWebviewContent() {
 
 		function applyFilters() {
 			try {
+				document.getElementById('statusbar').style.display = "none"
 				document.getElementById('mainview').style.display = "none"
 				document.querySelector('.loader').style.display = "block"
 				vscode.postMessage({ command: 'applyFilters' });
