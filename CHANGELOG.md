@@ -1,3 +1,6 @@
+## 0.2.1
+- Bug fixes
+
 ## 0.2.0
 - Support for loading a parameters file and applying values to the output
 - Filter out resources by type, helps de-clutter the view on very busy templates, or when you have many similar resources you want to hide (e.g. NSG rules)
