@@ -11,12 +11,14 @@ var infoShown = false;      // Is infobox displayed
 var labelField = 'label';   // Which field to show in labels
 var iconPrefix;             // Global prefix string appended to all icons
 var vscode;                 // VS Code API instance, can only be fetched once
+var filters;                // Global resource filters
 
 //
 // Initialize the Cytoscope container, and send message we're done
 //
 function init(prefix) {
   iconPrefix = prefix
+  filters = "";
   hideInfo();
 
   // Important step initializes main Cytoscape object 'cy'
@@ -83,6 +85,22 @@ function displayData(data) {
   console.log("### ArmView: Displaying received data");
   cy.remove('*');
   cy.add(data);
+
+  // Filter out nodes by resource type, if filter is set
+  if(filters && filters !== "") {
+    filterParts = filters.split(",");
+    if(filterParts && filterParts.length > 0) {
+      for(let filter of filterParts) {
+        filter = filter.trim();
+        if(filter !== "") {
+          console.log("^^^^^^^ REMOVING "+ `node[type *= "${filter}"]`);
+          
+          cy.$(`node[type *= "${filter}"]`).remove();
+        }
+      }
+    }
+  }
+
   reLayout();
 }
 
@@ -252,6 +270,7 @@ window.addEventListener("resize", function() {
 //
 function toggleSnap() {
   settingSnap = !settingSnap; 
+  document.getElementById('statusSnap').innerHTML = settingSnap ? 'On' : 'Off'
   if(settingSnap) {
     document.getElementById('snapbut').classList.add('toggled')
     cy.snapToGrid('snapOn');

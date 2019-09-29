@@ -33,8 +33,15 @@ body{
   padding: 10px;
 }
 
-#paramFileName {
-  display: none;
+#statusbar {
+  width: 98%;
+  bottom: 4px;
+  position: absolute;
+  z-index: 30;
+  color: var(--vscode-sideBarSectionHeader-foreground);
+  background-color: var(--vscode-sideBarSectionHeader-background);
+  padding: 4px;
+  padding-left: 10px;
 }
 
 button {

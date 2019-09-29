@@ -20,6 +20,7 @@ var panel: vscode.WebviewPanel | undefined = undefined;
 var extensionPath: string;
 var editor: vscode.TextEditor;
 var paramFileContent: string;
+var filters: string;
 var reporter: TelemetryReporter;
 
 // Used to buffer/delay updates when typing
@@ -124,7 +125,11 @@ export function activate(context: vscode.ExtensionContext) {
 					
 					if (message.command == 'applyParameters') {						
 						applyParameters();
-          }
+					}
+					
+					if (message.command == 'applyFilters') {						
+						applyFilters();
+          }					
         },
         undefined,
         context.subscriptions
@@ -145,7 +150,7 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 //
-// Refresh contents of the view
+// Prompt user for parameter file and apply it to the parser
 //
 async function applyParameters() {
 	let wsLocalDir = path.dirname(editor.document.fileName)
@@ -163,6 +168,20 @@ async function applyParameters() {
 			refreshView();
 		}
 	}
+}
+
+//
+// Prompt user for resource filters
+//
+async function applyFilters() {
+	let res = await vscode.window.showInputBox({ prompt: 'Comma separated list of resource types to filter out. Can be partial strings. Empty string will remove all filters', value: filters, placeHolder: 'e.g. vaults/secrets, securityRules' });
+	if(res) {
+		filters = res.toString();
+	} else {
+		filters = "";
+	}
+	if(panel) panel.webview.postMessage({ command: 'filtersApplied', payload: filters });
+	refreshView();
 }
 
 //
@@ -189,6 +208,7 @@ async function refreshView() {
 			let result = await parser.parse(templateJSON, paramFileContent);			
 			reporter.sendTelemetryEvent('parsedOK', {'nodeCount': result.length.toString(), 'filename': editor.document.fileName});
 			panel.webview.postMessage({ command: 'refresh', payload: result });
+			panel.webview.postMessage({ command: 'resCount', payload: result.length.toString() });
 		} catch(err) {
 			console.log('### ArmView: ERROR STACK: ' + err.stack)
 			reporter.sendTelemetryEvent('parseError', {'error': err, 'filename': editor.document.fileName});
@@ -224,7 +244,6 @@ function getWebviewContent() {
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<!--meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline'; script-src * 'unsafe-inline'; style-src * 'unsafe-inline'"-->
 
 	<script src="${jqueryUri}"></script>
 	<script src="${cytoscapeUri}"></script>
@@ -249,13 +268,18 @@ function getWebviewContent() {
 		<button onclick="reLayout()">LAYOUT</button>
 		<button onclick="applyParameters()">PARAMS</button>
 		<button onclick="reload()">RELOAD</button>
+		<button onclick="applyFilters()">FILTERS</button>
 	</div>
 
-	<div id="paramFileName"></div>
-	
 	<div class="loader">Loading...</div>
 
 	<div id="mainview"></div>
+	<div id="statusbar">
+	  Objects: <span id="statusResCount">0</span> &nbsp | &nbsp
+		Snap to grid: <span id="statusSnap">Off</span> &nbsp | &nbsp
+		Parameters: <span id="statusParams">none</span> &nbsp | &nbsp
+		Filters: <span id="statusFilters">none</span>
+	</div>
 
 	<div id="infobox">
 	  <div class="panel-heading" onclick="hideInfo()"><img id="infoimg" src=''/> &nbsp; Resource Details</div>
@@ -275,6 +299,7 @@ function getWebviewContent() {
 				document.querySelector('.loader').style.display = "none"
 				document.getElementById('mainview').style.display = "block"
 				document.getElementById('buttons').style.display = "block"
+				document.getElementById('statusbar').style.display = "block"
 				displayData(message.payload);
 			}
 
@@ -284,19 +309,30 @@ function getWebviewContent() {
 				document.querySelector('.loader').style.display = "none"
 				document.getElementById('mainview').style.display = "none"
 				document.getElementById('buttons').style.display = "none"
-				document.getElementById('paramFileName').style.display = "none"
+				document.getElementById('statusbar').style.display = "none"
 			}		
 
 			if(message.command == 'paramFile') {
 				if(message.payload) {
-					document.getElementById('paramFileName').style.display = "block"
-					document.getElementById('paramFileName').innerHTML = "Using parameters: <b>" + message.payload + "</b>"
+					document.getElementById('statusParams').innerHTML = message.payload
 				} else {
-					document.getElementById('paramFileName').style.display = "none"
+					document.getElementById('statusParams').innerHTML = "none"
 				}
-			}		
+			}
+
+			if(message.command == 'filtersApplied') {
+				document.getElementById('statusFilters').innerHTML = message.payload
+				filters = message.payload
+			}			
+			
+			if(message.command == 'resCount') {
+				if(message.payload) {
+					document.getElementById('statusResCount').innerHTML = message.payload;
+				}
+			}
 		});
 
+		// Loaded from main.js, init Cytoscape and canvas
 		init("${prefix}")
 
 		function applyParameters() {
@@ -304,6 +340,16 @@ function getWebviewContent() {
 				document.getElementById('mainview').style.display = "none"
 				document.querySelector('.loader').style.display = "block"
 				vscode.postMessage({ command: 'applyParameters' });
+			} catch(err) {
+				console.log(err)
+			}
+		}
+
+		function applyFilters() {
+			try {
+				document.getElementById('mainview').style.display = "none"
+				document.querySelector('.loader').style.display = "block"
+				vscode.postMessage({ command: 'applyFilters' });
 			} catch(err) {
 				console.log(err)
 			}
