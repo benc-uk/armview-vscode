@@ -92,8 +92,6 @@ function displayData(data, filters) {
       for(let filter of filterParts) {
         filter = filter.trim();
         if(filter !== "") {
-          console.log("^^^^^^^ REMOVING "+ `node[type *= "${filter}"]`);
-          
           cy.$(`node[type *= "${filter}"]`).remove();
         }
       }
@@ -144,7 +142,7 @@ function reLayout() {
   // Style of nodes, i.e. resources.
   cy.style().selector('node').style({
     'background-opacity': 0,
-    'label': node => { return getLabel(node) },
+    'label': node => { return decodeURIComponent(node.data(labelField)) },
     'background-image': node => { return iconPrefix + node.data('img') },
     'background-width': '90%',
     'background-height': '90%',
@@ -181,7 +179,7 @@ function reLayout() {
   // Bounding box for groups
   cy.style().selector(':parent').style({
     'background-image': null,
-    'label': node => { return getLabel(node) },
+    'label': node => { return decodeURIComponent(node.data(labelField)) },
     'border-width': '4',
     'border-color': '#000',
     'border-opacity': 0.5,
@@ -210,7 +208,8 @@ function reLayout() {
   cy.resize();
   cy.layout({
     name: 'breadthfirst',
-    nodeDimensionsIncludeLabels: false
+    nodeDimensionsIncludeLabels: false,
+    animate: true
   }).run();
   cy.fit();
 }
@@ -221,7 +220,7 @@ function reLayout() {
 function toggleLabels() {
   labelField = labelField == 'label' ? 'name' : 'label' 
   cy.style().selector('node').style({
-    'label': node => { return getLabel(node) },
+    'label': node => { return decodeURIComponent(node.data(labelField)) },
   }).update();
 }
 
@@ -283,14 +282,14 @@ function toggleSnap() {
 //
 // Get label for resource
 //
-function getLabel(node) {
-  // Special case - if resource has displayName tag
-  if(labelField == 'name') {
-    for(let extraField in node.data('extra')) {
-      if(extraField.toLowerCase() == 'tag displayname') {
-        return decodeURIComponent(node.data('extra')[extraField])
-      }
-    }
-  }
-  return decodeURIComponent(node.data(labelField))
-}
+// function getLabel(node) {
+//   // Special case - if resource has displayName tag
+//   if(labelField == 'name') {
+//     for(let extraField in node.data('extra')) {
+//       if(extraField.toLowerCase() == 'tag displayname') {
+//         return decodeURIComponent(node.data('extra')['tag displayname']);
+//       }
+//     }
+//   }
+//   return decodeURIComponent(node.data(labelField));
+// }

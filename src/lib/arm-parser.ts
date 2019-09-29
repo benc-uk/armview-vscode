@@ -57,14 +57,14 @@ class ARMParser {
       throw err;
     }
 
-    // Some simple ARM validation
+    // Some simple validation it is an ARM template
     if(!this.template.resources 
       || !this.template.$schema 
       || !this.template.$schema.toString().toLowerCase().includes("deploymenttemplate.json")) {
       throw new Error("File doesn't appear to be an ARM template, but is valid JSON");      
     }
         
-    // New first pass, use supplied parameters
+    // New first pass, apply supplied parameters if any
     if(parameterJSON) {
       this._applyParams(parameterJSON);
       if(this.error) throw this.error;
@@ -79,7 +79,7 @@ class ARMParser {
     // 2nd pass, work on resources
     await this._processResources(this.template.resources);
     if(this.error) throw this.error;
-    console.log(`### ArmView: Parsing complete, found ${this.elements.length} elements in template`);
+    console.log(`### ArmView: Parsing complete, found ${this.elements.length} elements in template ${this.name}`);
 
     // return result elements
     return this.elements;
@@ -175,13 +175,13 @@ class ARMParser {
       try {
         let pVal = paramObject.parameters[param].value;
         if(pVal !== "") {
+          // A cheap trick to force value into `defaultValue` to be picked up later
           this.template.parameters[param].defaultValue = pVal;
         }
       } catch(err) {
         console.log(`### ArmView: Error applying parameter '${param}' Err: ${err}`);
       }
     }
-
   }
 
   //
@@ -254,12 +254,20 @@ class ARMParser {
           try {
             // If we're REALLY lucky it will be an accessible public URL
             let result = await axios({ url: linkUri, responseType: 'text' })
+
             // Only required due to a bug in axios https://github.com/axios/axios/issues/907
             subTemplate = JSON.stringify(result.data);
+
+            // Ok, well this is kinda weird but sometimes you get a 200 and page back no matter what URL
+            // This is a primitive check we've got something JSON-ish
+            // We can't use content type as we've told Axios to return plain/text
+            if(subTemplate.charAt(0) != '{') throw new Error("Returned data wasn't JSON")
+            
             console.log("### ArmView: Linked template was fetched from external URL");
           } catch(err) {
             // That failed, in most cases we'll end up here 
-            console.log("### ArmView: URL not available, will search filesystem");
+            console.log(`### ArmView: ${err} URL not available, will search filesystem`);
+            subTemplate = ""; // !IMPORTANT The above step might have failed but set subTemplate to shite
 
             // This crazy code tries to search the loaded workspace for the file, two different ways
             if(this.editor) {
@@ -271,11 +279,11 @@ class ARMParser {
 
               // Try to guess directory it is in (don't worry if it's very wrong, it might be)
               let linkParts = linkUri.split('/');
-              let fileParentDir = linkParts[linkParts.length - 2];
-        
+              let fileParentDir = linkParts[linkParts.length - 2]; 
+                           
               // Try loading the from the workspace - assume file is in `fileParentDir` sub-folder
               // Most people store templates in a sub-folder and that sub-folder is included in the URL
-              if(fileParentDir) { 
+              if(fileParentDir && fileName) { 
                 // wsPath is local VS Code folder where the open editor doc is located
                 let wsPath = path.dirname(this.editor.document.uri.toString());
                 let filePath = `${wsPath}/${fileParentDir}/${fileName}`;
@@ -286,14 +294,14 @@ class ARMParser {
                   let fileContent = await vscode.workspace.fs.readFile(vscode.Uri.parse(`${wsPath}/${fileParentDir}/${fileName}`))
                   subTemplate = fileContent.toString()
                 } catch(err) {
-                  // Do nothing, this is likely to fail a lot, that's ok
+                  console.log(`### ArmView: failed to load ${filePath}`);
                 }
               }
 
               // Direct access didn't work, now try a glob search in workspace
               let wsLocalFile = path.basename(vscode.workspace.asRelativePath(this.editor.document.uri));
               // Only search if prev step failed and the filename we're looking for is NOT the same as the main template
-              if(!subTemplate && wsLocalFile != fileName) {
+              if(!subTemplate && fileName && wsLocalFile != fileName) {
                 let wsLocalDir = path.dirname(vscode.workspace.asRelativePath(this.editor.document.uri)).split(path.sep).pop();
 
                 let search = `**/${wsLocalDir}/**/${fileName}`;
@@ -335,7 +343,7 @@ class ARMParser {
 
           // If we have some data
           if(subTemplate) {
-            linkedNodeCount = await this._parseLinkedOrNested(res, subTemplate)
+            linkedNodeCount = await this._parseLinkedOrNested(res, subTemplate);
           } else {
             console.log("### ArmView: Warn! Unable to parse nested template");
           }
@@ -347,6 +355,11 @@ class ARMParser {
             let tagval = res.tags[tagname];
             tagval = utils.encode(this._evalExpression(tagval));
             tagname = utils.encode(this._evalExpression(tagname));
+
+            // Handle special case for displayName tag, which some people use. I dunno
+            if(tagname.toLowerCase() == 'displayname') {
+              res.name = tagval;
+            }
 
             // Store tags in 'extra' node data
             extraData['Tag ' + tagname] = tagval;  
@@ -397,25 +410,22 @@ class ARMParser {
             console.log('ERROR! Error when parsing VM resource: ', res.name);
           }
         }      
-  
-        // Create the node for Cytoscape, basically this is WHY WE ARE HERE!
-        let resNode: any = {
-          group: "nodes",
-          data: {
-            id: res.id,
-            name: utils.encode(res.name),
-            img: img,
-            kind: res.kind ? res.kind : '',
-            type: res.type,
-            label: label,
-            location: utils.encode(res.location),
-            extra: extraData
-          }
-        }
 
         if(linkedNodeCount == 0) {    
           // Stick resource node in resulting elements list
-          this.elements.push(resNode);
+          this.elements.push({
+            group: "nodes",
+            data: {
+              id: res.id,
+              name: utils.encode(res.name),
+              img: img,
+              kind: res.kind ? res.kind : '',
+              type: res.type,
+              label: label,
+              location: utils.encode(res.location),
+              extra: extraData
+            }
+          });
         } else {
           // This is a special group/container node for linked templates
           // We give it same name/label as the 'deployments' resource would have
@@ -472,21 +482,20 @@ class ARMParser {
   private async _parseLinkedOrNested(res: any, subTemplate: string): Promise<number> {
     // If we've got some actual data, means we read the linked file somehow
     if(subTemplate) {
-      let subParser = new ARMParser(this.extensionPath, res.name, this.reporter); 
+      let subParser = new ARMParser(this.extensionPath, res.name, this.reporter, this.editor); 
       try {
         let linkRes = await subParser.parse(subTemplate);
         
         // This means we successfully resolved/loaded the linked deployment
-        //linkedNodeCount = linkRes.length
         if(linkRes.length == 0) {
           console.log("### ArmView: Warn! Linked template contained no resources!");
         }
         
-        for(let r of linkRes) {
-          // This puts these sub-resources into the group
-          r.data.parent = res.id;
+        for(let subres of linkRes) {
+          // !IMPORTANT! Setting parent puts these sub-resources into a group, which will have been created 
+          subres.data.parent = res.id;
           // Push linked resources into the main list
-          this.elements.push(r);
+          this.elements.push(subres);
         }  
 
         return linkRes.length
@@ -760,6 +769,5 @@ class ARMParser {
     return this._evalExpression(str).substring(start, end);
   }
 }
-
 
 export default ARMParser;

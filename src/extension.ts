@@ -105,8 +105,10 @@ export function activate(context: vscode.ExtensionContext) {
 					// Switch editor and refresh
 					if(vscode.window.activeTextEditor) {
 						if(editor.document.fileName != vscode.window.activeTextEditor.document.fileName) {
+							// Wipe param file on switch
 							paramFileContent = "";
 							if(panel) panel.webview.postMessage({ command: 'paramFile', payload: "" });
+
 							editor = vscode.window.activeTextEditor;
 							refreshView();
 						}
@@ -117,18 +119,19 @@ export function activate(context: vscode.ExtensionContext) {
       // Handle messages from the webview
       panel.webview.onDidReceiveMessage(
         message => {
-
 					// Initial load of content, done at startup
           if (message.command == 'initialized') {
 						refreshView();
 					}
 					
-					if (message.command == 'applyParameters') {						
-						applyParameters();
+					// Message from webview - user clicked 'Params' button
+					if (message.command == 'paramsClicked') {						
+						pickParamsFile();
 					}
 					
-					if (message.command == 'applyFilters') {						
-						applyFilters();
+					// Message from webview - user clicked 'Filters' button
+					if (message.command == 'filtersClicked') {						
+						pickFilters();
           }					
         },
         undefined,
@@ -152,7 +155,7 @@ export function activate(context: vscode.ExtensionContext) {
 //
 // Prompt user for parameter file and apply it to the parser
 //
-async function applyParameters() {
+async function pickParamsFile() {
 	let wsLocalDir = path.dirname(editor.document.fileName)
 
 	if(wsLocalDir) {
@@ -167,13 +170,14 @@ async function applyParameters() {
 			} 
 		}
 	}
+
 	refreshView();
 }
 
 //
 // Prompt user for resource filters
 //
-async function applyFilters() {
+async function pickFilters() {
 	let res = await vscode.window.showInputBox({ prompt: 'Comma separated list of resource types to filter out. Can be partial strings. Empty string will remove all filters', value: filters, placeHolder: 'e.g. vaults/secrets, securityRules' });
 	if(res) {
 		filters = res.toString().toLowerCase();
@@ -181,6 +185,7 @@ async function applyFilters() {
 		filters = "";
 	}
 	if(panel) panel.webview.postMessage({ command: 'filtersApplied', payload: filters });
+
 	refreshView();
 }
 
@@ -267,8 +272,8 @@ function getWebviewContent() {
 		<button onclick="toggleSnap()" id="snapbut"><img src="${prefix}/img/toolbar/snap.svg">&nbsp; Snap</button>
 		<button onclick="reLayout()"><img src="${prefix}/img/toolbar/layout.svg">&nbsp; Layout</button>
 		&nbsp;&nbsp;	
-		<button onclick="applyParameters()"><img src="${prefix}/img/toolbar/params.svg">&nbsp; Params</button>
-		<button onclick="applyFilters()"><img src="${prefix}/img/toolbar/filter.svg">&nbsp; Filter</button>
+		<button onclick="sendMessage('paramsClicked')"><img src="${prefix}/img/toolbar/params.svg">&nbsp; Params</button>
+		<button onclick="sendMessage('filtersClicked')"><img src="${prefix}/img/toolbar/filter.svg">&nbsp; Filter</button>
 		&nbsp;&nbsp;
 		<button onclick="reload()"><img src="${prefix}/img/toolbar/reload.svg">&nbsp; Reload</button>
 	</div>
@@ -341,39 +346,28 @@ function getWebviewContent() {
 		});
 
 		// Loaded from main.js, init Cytoscape and canvas
-		init("${prefix}")
+		init("${prefix}");
 
-		function applyParameters() {
+		function sendMessage(msg) {
 			try {
-				document.getElementById('statusbar').style.display = "none"
-				document.getElementById('mainview').style.display = "none"
-				document.querySelector('.loader').style.display = "block"
-				vscode.postMessage({ command: 'applyParameters' });
+				document.getElementById('statusbar').style.display = "none";
+				document.getElementById('mainview').style.display = "none";
+				document.querySelector('.loader').style.display = "block";
+				vscode.postMessage({ command: msg });
 			} catch(err) {
-				console.log(err)
-			}
-		}
-
-		function applyFilters() {
-			try {
-				document.getElementById('statusbar').style.display = "none"
-				document.getElementById('mainview').style.display = "none"
-				document.querySelector('.loader').style.display = "block"
-				vscode.postMessage({ command: 'applyFilters' });
-			} catch(err) {
-				console.log(err)
+				console.log(err);
 			}
 		}
 
 		function reload() {
 			try {
-				document.getElementById('buttons').style.display = "block"
-				document.getElementById('error').style.display = "none"
-				document.getElementById('mainview').style.display = "none"
-				document.querySelector('.loader').style.display = "block"
+				document.getElementById('buttons').style.display = "block";
+				document.getElementById('error').style.display = "none";
+				document.getElementById('mainview').style.display = "none";
+				document.querySelector('.loader').style.display = "block";
 				vscode.postMessage({ command: 'initialized' });
 			} catch(err) {
-				console.log(err)
+				console.log(err);
 			}
 		}		
   </script>
