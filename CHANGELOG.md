@@ -1,3 +1,10 @@
+## 0.2.0
+- Support for loading a parameters file and applying values to the output
+- Several more fixes & improvements for linked templates, and variable resolution
+- Loading progressing indicator
+- Reload button
+- Many new sub-resource icons; automation, SQL Server, blobservices, and more
+
 ## 0.1.1
 - Several fixes & improvements to how linked templates are handled and searched for
   

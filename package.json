@@ -2,7 +2,7 @@
 	"name": "armview",
 	"displayName": "ARM Template Viewer",
 	"description": "Graphically display ARM templates in an interactive map view",
-	"version": "0.1.1",
+	"version": "0.2.0",
 	"icon": "assets/img/icons/main.png",
 	"publisher": "bencoleman",
 	"author": {
