@@ -1,9 +1,13 @@
 ## 0.2.0
 - Support for loading a parameters file and applying values to the output
-- Several more fixes & improvements for linked templates, and variable resolution
+- Filter out resources by type, helps de-clutter the view on very busy templates, or when you have many similar resources you want to hide (e.g. NSG rules)
+- New look toolbar
+- Status bar
+- Several more fixes & improvements for linked templates and variable resolution
 - Loading progressing indicator
 - Reload button
-- Many new sub-resource icons; automation, SQL Server, blobservices, and more
+- Many new icons; automation, SQL Server, blobservices, and more
+- A bunch more bugs I expect ;)
 
 ## 0.1.1
 - Several fixes & improvements to how linked templates are handled and searched for

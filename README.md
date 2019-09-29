@@ -25,12 +25,24 @@ Extension as been tested successfully against all 890+ [Azure Quickstart Templat
 - Or:
   - Use keyboard shortcut `Ctrl+Alt+Q`
 
-## Features
+## Basic Features
 - Click on a resource to show popup 'infobox' for that resource
-- Click 'LABELS' button to toggle labels from resource names to resource types
-- Click 'FIT' button to refit the view to the best zoom level
-- Click 'SNAP' button to toggle snap to grid mode on/off
-- Click 'LAYOUT' button to re-layout icons in default way
+- Click the 'Labels' toolbar button to toggle labels from resource names to resource types
+- Click the 'Re-fit' toolbar button to refit the view to the best zoom level
+- Click the 'Snap' toolbar button to toggle snap to grid mode on/off
+- Click the 'Layout' toolbar button to re-layout icons in default
+
+## Parameter Files
+By default the extension will try to use any `defaultValues` found in the parameters section of the template.
+
+To apply a set of input parameters and overrides to the view, click 'Params' toolbar button. You will be prompted for a ARM parameters JSON file (e.g. `azuredeploy.parameters.json`). The values in the parameters JSON fill will be used in place of values set in the template 
+
+## Resource Filters
+The view can sometimes get very crowded, especially when you have many resources of the same time (e.g. NSG rules or Key Vault secrets). Click the 'Filter' toolbar button to apply a filter to the view. You will be prompted for a input string:
+- This is a comma separated list of resource types you want *removed from the view*
+- A partial substring of the type can be used, e.g. `secrets` or `vaults/secrets` or `microsoft.keyvault/vaults/secrets`
+- Case does not matter
+- Entering an empty string will remove the filter
 
 ## Linked Templates
 The extension will attempt to locate and display linked templates, these resources will be shown grouped together in a shaded box. Linked template support is at an early stage, and comes with some limitations. This is an outline of how it works:

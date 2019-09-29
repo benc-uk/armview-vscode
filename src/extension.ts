@@ -176,7 +176,7 @@ async function applyParameters() {
 async function applyFilters() {
 	let res = await vscode.window.showInputBox({ prompt: 'Comma separated list of resource types to filter out. Can be partial strings. Empty string will remove all filters', value: filters, placeHolder: 'e.g. vaults/secrets, securityRules' });
 	if(res) {
-		filters = res.toString();
+		filters = res.toString().toLowerCase();
 	} else {
 		filters = "";
 	}

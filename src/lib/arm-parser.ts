@@ -58,7 +58,9 @@ class ARMParser {
     }
 
     // Some simple ARM validation
-    if(!this.template.resources || !this.template.$schema || !this.template.$schema.toString().includes("deploymentTemplate.json")) {
+    if(!this.template.resources 
+      || !this.template.$schema 
+      || !this.template.$schema.toString().toLowerCase().includes("deploymenttemplate.json")) {
       throw new Error("File doesn't appear to be an ARM template, but is valid JSON");      
     }
         
