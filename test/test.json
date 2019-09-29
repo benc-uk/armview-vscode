@@ -1,0 +1,38 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "siteName": {
+      "defaultValue": "thing"
+    }
+  },
+  "variables": {
+    "comment": "Azure QuickStarts",
+    "main": {
+      "cheese": "[variables('other').thing]"
+    },
+    "other": {
+      "thing": "wibble"
+    },
+    "v": 0,
+    "sizingOptions": [ 
+        "hello",
+        "cakes"
+    ],
+    "selectedSize": ""    
+  },
+  "resources": [
+    {
+      "apiVersion": "2016-08-01",
+      "name": "[parameters('siteName')]",
+      "type": "Microsoft.Web/sites", 
+      "location": "u"  
+      // "tags": {
+      //   "s": "[concat('hidden-related:', '/subscriptions/', subscription().subscriptionId,'/resourcegroups/', resourceGroup().name, '/providers/Microsoft.Web/serverfarms/', variables('hostingPlanName'))]"
+      // }
+    }
+  ],
+  "outputs": {
+  }
+}
+

@@ -9,7 +9,8 @@ var cy;                     // Global cytoscape instance
 var settingSnap = false;    // Not used currently
 var infoShown = false;      // Is infobox displayed
 var labelField = 'label';   // Which field to show in labels
-var iconPrefix              // Global prefix string appended to all icons
+var iconPrefix;             // Global prefix string appended to all icons
+var vscode;                 // VS Code API instance, can only be fetched once
 
 //
 // Initialize the Cytoscope container, and send message we're done
@@ -70,7 +71,7 @@ function init(prefix) {
   })
 
   // Send message that we're initialized and ready for data
-  const vscode = acquireVsCodeApi();
+  vscode = acquireVsCodeApi();
   vscode.postMessage({ command: 'initialized' })  
   console.log("### ArmView: Initialization complete");
 }

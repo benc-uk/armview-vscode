@@ -17,6 +17,8 @@ import { TextEditor } from 'vscode';
 class ARMParser {
   template: any;
   error: any;
+  currentExpression: any;
+  currentResource: any;
   elements: any[];
   extensionPath: string;
   reporter: TelemetryReporter | undefined;
@@ -29,6 +31,7 @@ class ARMParser {
   constructor(extensionPath: string, name: string, reporter?: TelemetryReporter, editor?: TextEditor) {
     this.template = null;
     this.error = null;
+    this.currentExpression = null;
     this.elements = [];
     this.extensionPath = extensionPath;
     this.reporter = reporter;
@@ -39,9 +42,8 @@ class ARMParser {
   //
   // Load and parse a ARM template from given string
   //
-  async parse(templateJSON: string, parameterJSON?: string): Promise<any[]> {
+  async parse(templateJSON: string): Promise<any[]> {
     console.log(`### ArmView: Start parsing JSON template: ${this.name}`);
-    this.elements = [];
 
     // Try to parse JSON file
     try {
@@ -53,22 +55,15 @@ class ARMParser {
       // Switched to jsonlint for more meaningful error messages
       this.template = jsonLint.parse(templateJSON);
     } catch(err) {
-      err.message = "This template file is not valid JSON, please correct the errors below\n\n" + err.message
+      err.message = "This file is not valid JSON, please correct the errors below\n\n" + err.message
       throw err;
     }
 
     // Some simple ARM validation
-    if(!this.template.resources || !this.template.$schema || !this.template.$schema.toString().includes("deploymentTemplate.json")) {
+    if(!this.template.resources || !this.template.$schema) {
       throw new Error("File doesn't appear to be an ARM template, but is valid JSON");      
     }
         
-    // New first pass, use supplied parameters
-    if(parameterJSON) {
-      this._applyParams(parameterJSON);
-      if(this.error) throw this.error;
-      console.log(`### ArmView: Parameter file applied`);
-    }
-    
     // First pass, fix types and assign ids with a hash function
     this._preProcess(this.template.resources, null);
     if(this.error) throw this.error;
@@ -83,6 +78,22 @@ class ARMParser {
     return this.elements;
   }
 
+
+  //
+  // Get last parsed expression, if any
+  //
+  getLastExpression() {
+    return this.currentExpression;
+  }
+
+  //
+  // Get last parsed expression, if any
+  //
+  getLastResource() {
+    return this.currentResource;
+  }
+
+
   //
   // Pre-parser function, does some work to make life easier for the main parser 
   //
@@ -91,27 +102,42 @@ class ARMParser {
     resources.forEach(res => {
       try {
         // Resolve and eval resource name
-        res.name = this._evalExpression(res.name, true);
-        
+        let match = res.name.match(/^\[(.*)\]$/);
+        if(match) {
+          res.name = this._evalExpression(match[1]);
+        } 
+
         // Resolve and eval resource location
         if(res.location) {
-          res.location = this._evalExpression(res.location, true);
+          match = res.location.match(/^\[(.*)\]$/);
+          if(match) {
+            res.location = this._evalExpression(match[1]);
+          } 
         }
 
         // Resolve and eval resource kind
         if(res.kind) {
-          res.kind = this._evalExpression(res.kind, true);
+          match = res.kind.match(/^\[(.*)\]$/);
+          if(match) {
+            res.kind = this._evalExpression(match[1]);
+          } 
         }
 
         // Resolve and eval resource tags
         if(res.tags && typeof res.tags == "string") {
-          res.tags = this._evalExpression(res.tags, true);
+          match = res.tags.match(/^\[(.*)\]$/);
+          if(match) {
+            res.tags = this._evalExpression(match[1]);
+          } 
         }     
 
         if(res.tags && typeof res.tags == "object") {
           Object.keys(res.tags).forEach(tagname => {
             let tagval = res.tags[tagname].toString();
-            res.tags[tagname] = this._evalExpression(tagval, true);
+            match = tagval.match(/^\[(.*)\]$/);
+            if(match) {
+              res.tags[tagname] = this._evalExpression(match[1]);
+            } 
           });
         } 
 
@@ -119,7 +145,10 @@ class ARMParser {
         if(res.sku && typeof res.sku == "object") {
           Object.keys(res.sku).forEach(propname => {
             let propval = res.sku[propname].toString();
-            res.sku[propname] = this._evalExpression(propval, true);
+            match = propval.match(/^\[(.*)\]$/);
+            if(match) {
+              res.sku[propname] = this._evalExpression(match[1]);
+            } 
           });
         }   
 
@@ -142,45 +171,6 @@ class ARMParser {
       }
     });
   }
-  
-    //
-  // Pre-parser function, does some work to make life easier for the main parser 
-  //
-  private _applyParams(parameterJSON: string) {
-    // Try to parse JSON file
-    let paramObject;
-
-    try {
-      // Strip out BOM characters for those mac owning weirdos
-      parameterJSON = stripBom(parameterJSON); 
-      // ARM parameters files do allow comments, but it's not part of the JSON spec 
-      parameterJSON = stripJsonComments(parameterJSON); 
-
-      // Switched to jsonlint for more meaningful error messages
-      paramObject = jsonLint.parse(parameterJSON);
-    } catch(err) {
-      err.message = "The parameter file is not valid JSON, please correct the errors below\n\n" + err.message
-      throw err;
-    }
-    
-    // Some simple ARM parameters validation
-    if(!paramObject.parameters || !paramObject.$schema || !paramObject.$schema.toString().includes("deploymentParameters.json")) {
-      throw new Error("File doesn't appear to be an ARM parameters file, but is valid JSON");      
-    }    
-
-    // Loop over all parameters
-    for(let param in paramObject.parameters) {
-      try {
-        let pVal = paramObject.parameters[param].value;
-        if(pVal !== "") {
-          this.template.parameters[param].defaultValue = pVal;
-        }
-      } catch(err) {
-        console.log(`### ArmView: Error applying parameter '${param}' Err: ${err}`);
-      }
-    }
-
-  }
 
   //
   // Main function to parse a resource, this will recurse into nested resources
@@ -188,6 +178,7 @@ class ARMParser {
   private async _processResources(resources: any[]) {
     for(let res of resources) {
       try {
+        this.currentResource = res.type + ": " + res.name
         let extraData: any;
         extraData = {}
   
@@ -231,18 +222,20 @@ class ARMParser {
           }
         }
   
-        // Handle linked templates, oh boy, this is a whole world of pain
+        // For linked templates, oh boy, this is a whole world of pain
         let linkedNodeCount: number = 0;
         if(res.type == 'microsoft.resources/deployments' && res.properties.templateLink) {
           let linkUri = res.properties.templateLink.uri;
-          linkUri = this._evalExpression(linkUri, true);
-
-          // Strip off everything after file extension, i.e. after ? or { characters
-          let match = linkUri.match(/(.*?)($|\?|{)/);
+          let match = linkUri.match(/^\[(.*)\]$/);
           if(match) {
-            linkUri = match[1]
-          }
-           
+            linkUri = this._evalExpression(match[1]);
+
+            // Strip off everything after file extension, i.e. after ? or { characters
+            match = linkUri.match(/(.*?)($|\?|{)/);
+            if(match) {
+              linkUri = match[1]
+            }
+          }  
           extraData['template-url'] = linkUri;
 
           // OK let's try to handle linked templates shall we? O_O
@@ -434,8 +427,11 @@ class ARMParser {
           res.dependsOn.forEach((dep: string) => {
             
             // Most dependsOn are not static strings, they will be expressions
-            dep = this._evalExpression(dep, true);
-            
+            let match = dep.match(/^\[(.*)\]$/);
+            if(match) {
+              dep = this._evalExpression(match[1]);
+            }  
+  
             // Find resource by eval'ed dependsOn string
             let depres = this._findResource(dep);
             // Then create a link between this resource and the found dependency 
@@ -497,40 +493,31 @@ class ARMParser {
     }
     return 0
   }
-
   //
   // Main ARM expression parser, attempts to evaluate and resolve ARM expressions into strings
   //
-  private _evalExpression(exp: string, check: boolean = false): any {
-    // Precheck called on top level calls to _evalExpression
-    if(check) {
-      let match = exp.match(/^\[(.*)\]$/);
-      if(match) {
-        exp = match[1];
-      } else {
-        return exp
-      }
-    }
+  private _evalExpression(exp: string): any {
+    this.currentExpression = exp;
 
     // Catch some rare errors where non-strings are parsed
     if(typeof exp != "string")
       return exp;
 
     exp = exp.trim();
-    
-    // It looks like a function call with a property reference e.g foo().bar or foo()['bar']
-    let match = exp.match(/(\w+)\((.*)\)((?:\.|\[).*)/);
+
+    // It looks like a function call with a property reference e.g foo().bar
+    let match = exp.match(/(\w+)\((.*)\)\.(.*)/);
     let funcProps = undefined;
     if(match) {
       let funcName = match[1];
       let funcParams = match[2];
-      funcProps = match[3];     
+      funcProps = match[3];
 
       // Catch some special cases, with referenced properties, e.g. resourceGroup().location
-      if(funcName == 'resourceGroup' && funcProps == '.id') return '{res-group-id}'; 
-      if(funcName == 'resourceGroup' && funcProps == '.location') return '{res-group-location}'; 
-      if(funcName == 'subscription' && funcProps == '.subscriptionid') return '{subscription-id}'; 
-      if(funcName == 'deployment' && funcProps == '.name') return '{deployment-name}'; 
+      if(funcName == 'resourceGroup' && funcProps == 'id') return '{res-group-id}'; 
+      if(funcName == 'resourceGroup' && funcProps == 'location') return '{res-group-location}'; 
+      if(funcName == 'subscription' && funcProps == 'subscriptionid') return '{subscription-id}'; 
+      if(funcName == 'deployment' && funcProps == 'name') return '{deployment-name}'; 
 
       if(funcName == 'variables') {
         return this._funcVarParam(this.template.variables, this._evalExpression(funcParams), funcProps);
@@ -545,6 +532,7 @@ class ARMParser {
     if(match) {
       let funcName = match[1].toLowerCase();
       let funcParams = match[2];
+      //console.log(`~~~ function: *${funcName}* |${funcParams}|`);
       
       if(funcName == 'variables') {
         return this._funcVarParam(this.template.variables, this._evalExpression(funcParams), '');
@@ -616,38 +604,27 @@ class ARMParser {
   // The only difference is the source 
   //
   private _funcVarParam(source: any, varName: string, propAccessor: string) {
-    // propAccessor is the . or [] part of the object accessor
-    // the [] notation requires some pre-processing for expressions e.g. foo[variable('bar')]
-    if(propAccessor && propAccessor.charAt(0) == '['
-       && !(propAccessor.charAt(1) >= '0' && propAccessor.charAt(1) <= '9')
-       && !(propAccessor.charAt(1) == "'")) {
-      // Evaluate propAccessor in case it includes an expression
-      let propAccessorResolved = this._evalExpression(propAccessor)
-      // If we get a string back it need's quoting, e.g. foo['baz']
-      if(typeof(propAccessorResolved) == 'string') {
-        propAccessorResolved = `'${propAccessorResolved}'`
-      }
-      // Otherwise it's hopefully a number 
-      propAccessor = `[${propAccessorResolved}]`;
-    }
-
     if(!source) return "{undefined}";
     let findKey = Object.keys(source).find(key => varName == key);
     if(findKey) {
+
       let val;
       
       // For parameters we access `defaultValue`
       if(source == this.template.parameters) {
         val = source[findKey].defaultValue;
-        console.log("^^^ PROP VAL "+val);
         // Without a defaultValue it is impossible to know what the parameters value could be!
         // So a fall-back out is to return the param name inside {}
-        if(!val && val !== 0)
+        if(!val)
           return `{${this._evalExpression(varName)}}`
       } else {
         // For variables we use the actual value
         val = source[findKey];
       }
+
+      // console.log(`### DEBUG: propAccessor: ` + propAccessor);
+      // console.log(`### DEBUG: typeof val: ` + typeof(val));
+      // console.log(`### DEBUG: val: ` + JSON.stringify(val));
 
       // Variables can be JSON objects, MASSIVE SIGH LOOK AT THIS INSANITY
       if(typeof(val) == 'object') {
@@ -661,7 +638,7 @@ class ARMParser {
 
         // Use eval to access property, I'm not happy about it, but don't have a choice
         try {
-          let evalResult = eval('val' + propAccessor);
+          let evalResult = eval('val.' + propAccessor);
 
           if(typeof(evalResult) == 'undefined') {
             console.log(`### ArmView: Warn! Your template contains invalid references: ${varName} -> ${propAccessor}`)
@@ -670,7 +647,11 @@ class ARMParser {
 
           if(typeof(evalResult) == 'string') {
             // variable references values can be expressions too, so down the rabbit hole we go...
-            return this._evalExpression(evalResult, true);
+            let match = evalResult.match(/^\[(.*)\]$/);
+            if(match) {
+              return this._evalExpression(match[1]);
+            }
+            return evalResult;
           }
 
           if(typeof(evalResult) == 'object') {
@@ -685,9 +666,12 @@ class ARMParser {
 
       if(typeof(val) == 'string') {
         // variable values can be expressions too, so down the rabbit hole we go...
-        return this._evalExpression(val, true);
+        let match = val.match(/^\[(.*)\]$/);
+        if(match) {
+          return this._evalExpression(match[1]);
+        }
       }
-      
+
       // Fall back
       return val;
     } else {
@@ -759,6 +743,5 @@ class ARMParser {
     return this._evalExpression(str).substring(start, end);
   }
 }
-
 
 export default ARMParser;

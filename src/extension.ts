@@ -19,6 +19,7 @@ const telemetryKey = '0e2a6ba6-6c52-4e94-86cf-8dc87830e82e';
 var panel: vscode.WebviewPanel | undefined = undefined;
 var extensionPath: string;
 var editor: vscode.TextEditor;
+var paramFileContent: string;
 var reporter: TelemetryReporter;
 
 // Used to buffer/delay updates when typing
@@ -47,6 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
 			
 			// Store the active editor at start
 			editor = vscode.window.activeTextEditor;
+			paramFileContent = "";
 
 			if (panel) {
 				// If we already have a panel, show it
@@ -102,6 +104,8 @@ export function activate(context: vscode.ExtensionContext) {
 					// Switch editor and refresh
 					if(vscode.window.activeTextEditor) {
 						if(editor.document.fileName != vscode.window.activeTextEditor.document.fileName) {
+							paramFileContent = "";
+							if(panel) panel.webview.postMessage({ command: 'paramFile', payload: "" });
 							editor = vscode.window.activeTextEditor;
 							refreshView();
 						}
@@ -112,9 +116,14 @@ export function activate(context: vscode.ExtensionContext) {
       // Handle messages from the webview
       panel.webview.onDidReceiveMessage(
         message => {
+
+					// Initial load of content, done at startup
           if (message.command == 'initialized') {
-						// Initial load of content, done at startup
 						refreshView();
+					}
+					
+					if (message.command == 'applyParameters') {						
+						applyParameters();
           }
         },
         undefined,
@@ -138,6 +147,27 @@ export function activate(context: vscode.ExtensionContext) {
 //
 // Refresh contents of the view
 //
+async function applyParameters() {
+	let wsLocalDir = path.dirname(editor.document.fileName)
+
+	if(wsLocalDir) {
+		let paramFile = await vscode.window.showOpenDialog({defaultUri: vscode.Uri.file(wsLocalDir), canSelectMany: false, filters:{ JSON: ['json'] } } );
+		if(paramFile) {
+			let res  = await vscode.workspace.fs.readFile(paramFile[0]);
+			if(res) {
+				paramFileContent = res.toString();
+				let paramFileName = vscode.workspace.asRelativePath(paramFile[0]);
+				if(panel) panel.webview.postMessage({ command: 'paramFile', payload: paramFileName });
+			}
+
+			refreshView();
+		}
+	}
+}
+
+//
+// Refresh contents of the view
+//
 async function refreshView() {
 	// Reset timers for typing updates
 	refreshedTime = Date.now();
@@ -156,18 +186,13 @@ async function refreshView() {
 		let templateJSON = editor.document.getText();
 		var parser = new ARMParser(extensionPath, "main", reporter, editor);    
 		try {
-			let result = await parser.parse(templateJSON);			
+			let result = await parser.parse(templateJSON, paramFileContent);			
 			reporter.sendTelemetryEvent('parsedOK', {'nodeCount': result.length.toString(), 'filename': editor.document.fileName});
 			panel.webview.postMessage({ command: 'refresh', payload: result });
 		} catch(err) {
 			console.log('### ArmView: ERROR STACK: ' + err.stack)
 			reporter.sendTelemetryEvent('parseError', {'error': err, 'filename': editor.document.fileName});
-			panel.webview.postMessage({ 
-				command: 'error', 
-				payload: err + 
-					"\n\nTriggering expression: " + parser.getLastExpression() +
-					"\n\nTriggering resource: " + parser.getLastResource()
-			})
+			panel.webview.postMessage({ command: 'error', payload: err.message })
 		}
 	} else {
 		vscode.window.showErrorMessage("No editor active, open a ARM template JSON file in the editor")
@@ -214,8 +239,7 @@ function getWebviewContent() {
 <body>
 	<div id="error">
 		<div id="errortitle">⚠️ Parser Error</div>
-		<div id="errormsg">
-		</div>
+		<div id="errormsg"></div>
 	</div>
 
 	<div id="buttons">
@@ -223,7 +247,14 @@ function getWebviewContent() {
 		<button onclick="cy.fit()">FIT</button>
 		<button onclick="toggleSnap()" id="snapbut">SNAP</button>
 		<button onclick="reLayout()">LAYOUT</button>
+		<button onclick="applyParameters()">PARAMS</button>
+		<button onclick="reload()">RELOAD</button>
 	</div>
+
+	<div id="paramFileName"></div>
+	
+	<div class="loader">Loading...</div>
+
 	<div id="mainview"></div>
 
 	<div id="infobox">
@@ -241,6 +272,7 @@ function getWebviewContent() {
 
 			if(message.command == 'refresh') {
 				document.getElementById('error').style.display = "none"
+				document.querySelector('.loader').style.display = "none"
 				document.getElementById('mainview').style.display = "block"
 				document.getElementById('buttons').style.display = "block"
 				displayData(message.payload);
@@ -249,12 +281,45 @@ function getWebviewContent() {
 			if(message.command == 'error') {
 				document.getElementById('errormsg').innerHTML = message.payload
 				document.getElementById('error').style.display = "block"
+				document.querySelector('.loader').style.display = "none"
 				document.getElementById('mainview').style.display = "none"
 				document.getElementById('buttons').style.display = "none"
-			}			
+				document.getElementById('paramFileName').style.display = "none"
+			}		
+
+			if(message.command == 'paramFile') {
+				if(message.payload) {
+					document.getElementById('paramFileName').style.display = "block"
+					document.getElementById('paramFileName').innerHTML = "Using parameters: <b>" + message.payload + "</b>"
+				} else {
+					document.getElementById('paramFileName').style.display = "none"
+				}
+			}		
 		});
 
 		init("${prefix}")
+
+		function applyParameters() {
+			try {
+				document.getElementById('mainview').style.display = "none"
+				document.querySelector('.loader').style.display = "block"
+				vscode.postMessage({ command: 'applyParameters' });
+			} catch(err) {
+				console.log(err)
+			}
+		}
+
+		function reload() {
+			try {
+				document.getElementById('buttons').style.display = "block"
+				document.getElementById('error').style.display = "none"
+				document.getElementById('mainview').style.display = "none"
+				document.querySelector('.loader').style.display = "block"
+				vscode.postMessage({ command: 'initialized' });
+			} catch(err) {
+				console.log(err)
+			}
+		}		
   </script>
 </body>
 </html>`;
