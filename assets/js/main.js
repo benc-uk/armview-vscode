@@ -208,8 +208,8 @@ function reLayout() {
   cy.resize();
   cy.layout({
     name: 'breadthfirst',
-    nodeDimensionsIncludeLabels: false,
-    animate: true
+    nodeDimensionsIncludeLabels: false
+    //animate: true
   }).run();
   cy.fit();
 }
