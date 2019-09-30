@@ -4,8 +4,10 @@ const ARMParser = require('../out/lib/arm-parser').default; //from '../../src/li
 const fs = require('fs');
 
 /*
+rm -rf azure-quickstart-templates-master
 wget https://github.com/Azure/azure-quickstart-templates/archive/master.zip
 unzip master.zip
+rm master.zip
 */
 
 console.log = function(s) {}
