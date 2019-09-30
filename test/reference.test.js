@@ -1,7 +1,10 @@
 const fail = require("assert").fail;
 const ARMParser = require('../out/lib/arm-parser').default; 
 const fs = require('fs');
-const expect = require('chai').expect;
+
+const chai = require('chai');
+const expect = chai.expect;
+chai.use(require('chai-subset'));
 
 console.log = function(s) {}
 
@@ -17,7 +20,7 @@ async function loadTemplate(filename) {
   }
 }
 
-describe('Tests: basic.json', function() {
+describe('Test: basic.json', function() {
   let res;
   it('Parse file', async function() {
     res = await loadTemplate("test/ref/basic.json");
@@ -36,3 +39,19 @@ describe('Tests: basic.json', function() {
   })
 });
 
+describe('Test: vars-params.json', function() {
+  let res;
+  it('Parse file', async function() {
+    res = await loadTemplate("test/ref/vars-params.json");
+  });
+  it('Validate nodes & edges', async function() {
+    expect(res).to.have.lengthOf(6);
+
+    expect(res).to.be.an("array").to.containSubset([{data:{name:"Lou%20Reed"}}]);
+    expect(res).to.be.an("array").to.containSubset([{data:{name:"Waters"}}]);
+    expect(res).to.be.an("array").to.containSubset([{data:{name:"Zappa"}}]);
+    expect(res).to.be.an("array").to.containSubset([{data:{name:"Iommi"}}]);
+    expect(res).to.be.an("array").to.containSubset([{data:{name:"Cheese_A%20simple%20var"}}]);
+    expect(res).to.be.an("array").to.containSubset([{data:{name:"A%20simple%20var_A%20simple%20name"}}]);
+  })
+});
