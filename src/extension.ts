@@ -28,7 +28,7 @@ var refreshedTime: number = Date.now();
 var typingTimeout: any;
 
 //
-// Main extension activation
+// Main extension activation 
 //
 export function activate(context: vscode.ExtensionContext) {
 	extensionPath = context.extensionPath;
@@ -235,14 +235,7 @@ function getWebviewContent() {
 	if(!panel)
 		return "";
 
-	const mainScriptUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'js', 'main.js')));
-	const mainCss = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'css', 'main.css')));
-	const cytoscapeUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'js', 'vendor', 'cytoscape.min.js')));
-	const prefix = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets')));
-
-	const cytoscapeSnapUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'js', 'vendor', 'cytoscape-snap-to-grid.js')));
-	const jqueryUri = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'js', 'vendor', 'jquery-3.4.1.slim.min.js')));
-
+	const assetsPath = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets')));
 	return `
 <!DOCTYPE html>
 <html lang="en">
@@ -250,13 +243,14 @@ function getWebviewContent() {
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-	<script src="${jqueryUri}"></script>
-	<script src="${cytoscapeUri}"></script>
-	<script src="${cytoscapeSnapUri}"></script>
+	<script src="${assetsPath}/js/vendor/jquery-3.4.1.slim.min.js"></script>
+	<script src="${assetsPath}/js/vendor/cytoscape.min.js"></script>
+	<script src="${assetsPath}/js/vendor/cytoscape-snap-to-grid.js"></script>
 
-	<script src="${mainScriptUri}"></script>
+	<script src="${assetsPath}/js/main.js"></script>
+	<script src="${assetsPath}/js/webview.js"></script>
 
-	<link href="${mainCss}" rel="stylesheet" type="text/css">
+	<link href="${assetsPath}/css/main.css" rel="stylesheet" type="text/css">
 
 	<title>ARM Viewer</title>
 </head>
@@ -267,15 +261,15 @@ function getWebviewContent() {
 	</div>
 
 	<div id="buttons">
-		<button onclick="toggleLabels()"><img src="${prefix}/img/toolbar/labels.svg">&nbsp;  Labels</button>
-		<button onclick="cy.fit()"><img src="${prefix}/img/toolbar/fit.svg">&nbsp; Re-fit</button>
-		<button onclick="toggleSnap()" id="snapbut"><img src="${prefix}/img/toolbar/snap.svg">&nbsp; Snap</button>
-		<button onclick="reLayout()"><img src="${prefix}/img/toolbar/layout.svg">&nbsp; Layout</button>
+		<button onclick="toggleLabels()"><img src="${assetsPath}/img/toolbar/labels.svg">&nbsp; Labels</button>
+		<button onclick="cy.fit()"><img src="${assetsPath}/img/toolbar/fit.svg">&nbsp; Re-fit</button>
+		<button onclick="toggleSnap()" id="snapbut"><img src="${assetsPath}/img/toolbar/snap.svg">&nbsp; Snap</button>
+		<button onclick="reLayout()"><img src="${assetsPath}/img/toolbar/layout.svg">&nbsp; Layout</button>
 		&nbsp;&nbsp;	
-		<button onclick="sendMessage('paramsClicked')"><img src="${prefix}/img/toolbar/params.svg">&nbsp; Params</button>
-		<button onclick="sendMessage('filtersClicked')"><img src="${prefix}/img/toolbar/filter.svg">&nbsp; Filter</button>
+		<button onclick="sendMessage('paramsClicked')"><img src="${assetsPath}/img/toolbar/params.svg">&nbsp; Params</button>
+		<button onclick="sendMessage('filtersClicked')"><img src="${assetsPath}/img/toolbar/filter.svg">&nbsp; Filter</button>
 		&nbsp;&nbsp;
-		<button onclick="reload()"><img src="${prefix}/img/toolbar/reload.svg">&nbsp; Reload</button>
+		<button onclick="sendMessage('initialized')"><img src="${assetsPath}/img/toolbar/reload.svg">&nbsp; Reload</button>
 	</div>
 
 	<div class="loader"></div>
@@ -292,85 +286,15 @@ function getWebviewContent() {
 	<div id="infobox">
 	  <div class="panel-heading" onclick="hideInfo()"><img id="infoimg" src=''/> &nbsp; Resource Details</div>
     <div class="panel-body">
-      <table id="infotable">    
-      </table>
+      <table id="infotable"></table>
     </div>
 	</div>
 
 	<script>
-		var filters = "";
-		// Message handler in webview, messages are sent by extension
-		window.addEventListener('message', event => {
-			const message = event.data;
+		// **** Init Cytoscape and canvas (function in main.js) ****
+		init("${assetsPath}");
+	</script>
 
-			if(message.command == 'refresh') {
-				document.getElementById('error').style.display = "none"
-				document.querySelector('.loader').style.display = "none"
-				document.getElementById('mainview').style.display = "block"
-				document.getElementById('buttons').style.display = "block"
-				document.getElementById('statusbar').style.display = "block"
-				displayData(message.payload, filters);
-			}
-
-			if(message.command == 'error') {
-				document.getElementById('errormsg').innerHTML = message.payload
-				document.getElementById('error').style.display = "block"
-				document.querySelector('.loader').style.display = "none"
-				document.getElementById('mainview').style.display = "none"
-				document.getElementById('buttons').style.display = "none"
-				document.getElementById('statusbar').style.display = "none"
-			}		
-
-			if(message.command == 'paramFile') {
-				if(message.payload) {
-					document.getElementById('statusParams').innerHTML = message.payload
-				} else {
-					document.getElementById('statusParams').innerHTML = "none"
-				}
-			}
-
-			if(message.command == 'filtersApplied') {
-				filters = message.payload;
-				if(filters == "" && !filters) {
-					document.getElementById('statusFilters').innerHTML = "none"
-				} else {
-					document.getElementById('statusFilters').innerHTML = filters
-				}
-			}			
-			
-			if(message.command == 'resCount') {
-				if(message.payload) {
-					document.getElementById('statusResCount').innerHTML = message.payload;
-				}
-			}
-		});
-
-		// Loaded from main.js, init Cytoscape and canvas
-		init("${prefix}");
-
-		function sendMessage(msg) {
-			try {
-				document.getElementById('statusbar').style.display = "none";
-				document.getElementById('mainview').style.display = "none";
-				document.querySelector('.loader').style.display = "block";
-				vscode.postMessage({ command: msg });
-			} catch(err) {
-				console.log(err);
-			}
-		}
-
-		function reload() {
-			try {
-				document.getElementById('buttons').style.display = "block";
-				document.getElementById('error').style.display = "none";
-				document.getElementById('mainview').style.display = "none";
-				document.querySelector('.loader').style.display = "block";
-				vscode.postMessage({ command: 'initialized' });
-			} catch(err) {
-				console.log(err);
-			}
-		}		
-  </script>
 </body>
 </html>`;
 }

@@ -358,7 +358,8 @@ class ARMParser {
 
             // Handle special case for displayName tag, which some people use. I dunno
             if(tagname.toLowerCase() == 'displayname') {
-              res.name = tagval;
+              // Don't used encoded value
+              res.name = res.tags[tagname];
             }
 
             // Store tags in 'extra' node data
