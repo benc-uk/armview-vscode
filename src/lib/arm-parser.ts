@@ -614,11 +614,12 @@ class ARMParser {
   //
   // Locate a resource by resource id
   //
-  private _findResource(id: string) {
+  private _findResource(name: string) {
     return this.template.resources.find((res: any) => {
-      // Simple match on substring is possible after 
-      // fully resolving names & types
-      return res.fqn.toLowerCase().includes(id.toLowerCase());
+      // Simple match on substring is possible after fully resolving names & types
+      // Switched to endsWith rather than include, less generous but more correct
+      return res.fqn.toLowerCase().endsWith(name.toLowerCase());
+      //return res.fqn.toLowerCase().includes(name.toLowerCase());
     });
   }
 

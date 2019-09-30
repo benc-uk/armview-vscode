@@ -18,7 +18,12 @@ export function makeId(len: number) {
 
 
 // Hashing function
-export function hashCode(str: string) {
+export function hashCode(str: string): any {
+  // var crypto = require('crypto');
+  // var key = crypto.createCipher('aes-128-cbc-hmac-sha256', '');
+  // key.update(str, 'utf8', 'hex');
+  // return key.final('hex');
+
   var hash = 0, i, chr;
   if (str.length === 0) return hash;
   for (i = 0; i < str.length; i++) {
