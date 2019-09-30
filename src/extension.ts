@@ -212,7 +212,7 @@ async function refreshView() {
 		try {
 			let result = await parser.parse(templateJSON, paramFileContent);			
 			reporter.sendTelemetryEvent('parsedOK', {'nodeCount': result.length.toString(), 'filename': editor.document.fileName});
-			panel.webview.postMessage({ command: 'refresh', payload: result });
+			panel.webview.postMessage({ command: 'newData', payload: result });
 			panel.webview.postMessage({ command: 'resCount', payload: result.length.toString() });
 		} catch(err) {
 			console.log('### ArmView: ERROR STACK: ' + err.stack)
@@ -248,7 +248,6 @@ function getWebviewContent() {
 	<script src="${assetsPath}/js/vendor/cytoscape-snap-to-grid.js"></script>
 
 	<script src="${assetsPath}/js/main.js"></script>
-	<script src="${assetsPath}/js/webview.js"></script>
 
 	<link href="${assetsPath}/css/main.css" rel="stylesheet" type="text/css">
 

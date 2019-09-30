@@ -4,14 +4,13 @@
 // Client script works alongside main.js as the interface back to VS Code extension
 //
 
-var filters = "";
-
-// Message handler in webview, messages are sent by extension
+// Message handler in webview, messages are sent by extension.ts
 window.addEventListener('message', event => {
+  // Get message content
   const message = event.data;
 
-  // 
-  if(message.command == 'refresh') {
+  // Parsed data received here from refreshView() with results of ARMParser 
+  if(message.command == 'newData') {
     document.getElementById('error').style.display = "none"
     document.querySelector('.loader').style.display = "none"
     document.getElementById('mainview').style.display = "block"
@@ -22,6 +21,7 @@ window.addEventListener('message', event => {
     displayData(message.payload, filters);
   }
 
+  // Display error text
   if(message.command == 'error') {
     document.getElementById('errormsg').innerHTML = message.payload
     document.getElementById('error').style.display = "block"
@@ -31,6 +31,7 @@ window.addEventListener('message', event => {
     document.getElementById('statusbar').style.display = "none"
   }		
 
+  // Update the statusbar with applied params file
   if(message.command == 'paramFile') {
     if(message.payload) {
       document.getElementById('statusParams').innerHTML = message.payload
@@ -39,6 +40,7 @@ window.addEventListener('message', event => {
     }
   }
 
+  // Update the statusbar with applied filters (if any)
   if(message.command == 'filtersApplied') {
     filters = message.payload;
     if(filters == "" && !filters) {
@@ -48,6 +50,7 @@ window.addEventListener('message', event => {
     }
   }			
   
+  // Update the statusbar with the count of objects
   if(message.command == 'resCount') {
     if(message.payload) {
       document.getElementById('statusResCount').innerHTML = message.payload;
@@ -56,7 +59,7 @@ window.addEventListener('message', event => {
 });
 
 //
-// Used by buttons to send messages back to extension
+// Used by toolbar buttons to send messages back to extension
 //
 function sendMessage(msg) {
   try {
@@ -69,15 +72,3 @@ function sendMessage(msg) {
     console.log(err);
   }
 }
-
-// function reload() {
-//   try {
-//     document.getElementById('buttons').style.display = "block";
-//     document.getElementById('error').style.display = "none";
-//     document.getElementById('mainview').style.display = "none";
-//     document.querySelector('.loader').style.display = "block";
-//     vscode.postMessage({ command: 'initialized' });
-//   } catch(err) {
-//     console.log(err);
-//   }
-// }		
