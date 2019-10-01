@@ -1,0 +1,62 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "simpleParam": {
+      "defaultValue": "A simple name",
+      "type": "string"
+    }
+  },
+  "variables": {
+    "simpleVar": "A simple var",
+    "refVar": "[concat('Cheese_', variables('simpleVar'))]",
+    "objVar": {
+      "someProp": {
+        "name": "Lou Reed",
+        "nameList": [
+          "Bowie",
+          "Zappa",
+          "Waters"
+        ]
+      }
+    },
+    "arrayVar": [
+      "Osbourne",
+      "Iommi",
+      "Butler",
+      "Ward"
+    ]
+  },
+  "resources": [
+    {
+      // Name should be: "A simple var_A simple name"
+      "name": "[concat(variables('simpleVar'), '_', parameters('simpleParam'))]",
+      "type": "microsoft.compute/disks"
+    },
+    {
+      // Name should be: "Cheese_A simple var"
+      "name": "[variables('refVar')]",
+      "type": "microsoft.compute/disks"
+    },
+    {
+      // Name should be: "Lou Reed"
+      "name": "[variables('objVar').someProp.name]",
+      "type": "microsoft.compute/disks"
+    },
+    {
+      // Name should be: "Zappa"
+      "name": "[variables('objVar').someProp.nameList[1]]",
+      "type": "microsoft.compute/disks"
+    },
+    {
+      // Name should be: "Waters"
+      "name": "[variables('objVar')['someProp'].nameList[2]]",
+      "type": "microsoft.compute/disks"
+    },    
+    {
+      // Name should be: "Iommi"
+      "name": "[variables('arrayVar')[1]]",
+      "type": "microsoft.compute/disks"
+    }
+  ]
+}

@@ -1,4 +1,8 @@
-## 0.2.1
+## 0.2.2
+- Bug fixes
+- Removed animation
+
+- ## 0.2.1
 - Bug fixes
 
 ## 0.2.0

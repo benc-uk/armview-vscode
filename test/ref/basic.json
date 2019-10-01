@@ -1,0 +1,43 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "webParam": {
+      "defaultValue": "web3",
+      "type": "string"
+    }
+  },
+  "variables": {
+    "prefix": "web"
+  },
+  "resources": [
+    {
+      "name": "web1",
+      "type": "microsoft.web/sites"
+    },
+    {
+      "name": "web2",
+      "type": "microsoft.web/sites",
+      "dependsOn": [
+        "web1"
+      ]
+    },
+    {
+      "name": "web3",
+      "type": "microsoft.web/sites",
+      "dependsOn": [
+        "[concat(variables('prefix'), '2')]"
+      ]
+    },
+    {
+      "name": "web4",
+      "type": "microsoft.web/sites",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', parameters('webParam'))]",
+        // Incorrect link, should NOT link to web1 or anything
+        "[resourceId('Microsoft.Web/sites', '')]",
+        "[resourceId('Microsoft.Web/sites', 'web2')]"
+      ]
+    }    
+  ]
+}
