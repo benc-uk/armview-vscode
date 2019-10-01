@@ -83,6 +83,8 @@ function init(prefix) {
 //
 function displayData(data) {
   console.log("### ArmView: Displaying received data");
+  //console.dir(JSON.stringify(data, null, 3));
+  
   cy.remove('*');
   cy.add(data);
 
@@ -99,7 +101,7 @@ function displayData(data) {
     }
   }
 
-  reLayout();
+  reLayout('breadthfirst', false);
 }
 
 //
@@ -113,20 +115,17 @@ function _addInfo(name, value) {
 
   table = document.getElementById('infotable');
 
-  if(value.startsWith('http')) {
-    table.insertAdjacentHTML('beforeend', `<tr><td>${_utilTitleCase(name)}</td><td><a href='/view?url=${encodeURIComponent(value)}' target='_blank'>${value}</a></td></tr>`)
-  } else {
-    let valClass = '';
-    if(value.startsWith('{') && value.endsWith('}'))
-      valClass = 'italic';
-    table.insertAdjacentHTML('beforeend', `<tr><td>${_utilTitleCase(name)}</td><td class='${valClass}'>${value}</td></tr>`);
-  }
+  let valClass = '';
+  if(value.startsWith('{') && value.endsWith('}'))
+    valClass = 'italic';
+    
+  table.insertAdjacentHTML('beforeend', `<tr><td>${_utilTitleCase(name)}</td><td class='${valClass}'>${value}</td></tr>`);
 }
 
 //
 // Layout the view of nodes given current data
 //
-function reLayout() {
+function reLayout(mode, animate) {
   // Set colors in keeping with VS code theme (might be dark or light)
   let bgColor = window.getComputedStyle(document.getElementsByTagName('body')[0]).getPropertyValue('background-color');
   let textColor = '#eeeeee';
@@ -180,7 +179,7 @@ function reLayout() {
   // Bounding box for groups
   cy.style().selector(':parent').style({
     'background-image': null,
-    'label': node => { return decodeURIComponent(node.data(labelField)) },
+    'label': node => { return getLabel(node) }, //decodeURIComponent(node.data(labelField)) },
     'border-width': '4',
     'border-color': '#000',
     'border-opacity': 0.5,
@@ -204,14 +203,24 @@ function reLayout() {
   else  
     cy.snapToGrid('snapOff');
 
-  // Re-layout nodes in breadthfirst mode, resizing and fitting too
+  // Re-layout nodes in given mode, resizing and fitting too
   cy.style().update()
   cy.resize();
+
+  if(!mode) mode = 'breadthfirst'
+  if(!animate) animate = false
+  let spacing = 1.5
+  if(mode == 'grid')
+    spacing = 1.75
+
   cy.layout({
-    name: 'breadthfirst',
-    nodeDimensionsIncludeLabels: false
-    //animate: true
+    avoidOverlap: true,
+    name: mode,
+    nodeDimensionsIncludeLabels: false,
+    spacingFactor: spacing,
+    animate: animate
   }).run();
+
   cy.fit();
 }
 
@@ -221,7 +230,7 @@ function reLayout() {
 function toggleLabels() {
   labelField = labelField == 'label' ? 'name' : 'label' 
   cy.style().selector('node').style({
-    'label': node => { return decodeURIComponent(node.data(labelField)) },
+    'label': node => { return getLabel(node) } //decodeURIComponent(node.data(labelField)) },
   }).update();
 }
 
@@ -356,14 +365,10 @@ function sendMessage(msg) {
 //
 // Get label for resource
 //
-// function getLabel(node) {
-//   // Special case - if resource has displayName tag
-//   if(labelField == 'name') {
-//     for(let extraField in node.data('extra')) {
-//       if(extraField.toLowerCase() == 'tag displayname') {
-//         return decodeURIComponent(node.data('extra')['tag displayname']);
-//       }
-//     }
-//   }
-//   return decodeURIComponent(node.data(labelField));
-// }
+function getLabel(node) {
+  let label = decodeURIComponent(node.data(labelField));
+  if(label.length > 24) {
+    label = label.substr(0, 24) + "…"
+  }
+  return label;
+}

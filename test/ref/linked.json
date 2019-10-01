@@ -1,0 +1,70 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "simpleParam": {
+      "defaultValue": "A simple name",
+      "type": "string"
+    }
+  },
+  "variables": {
+
+  },
+  "resources": [
+    {
+      "name": "directLink",
+      "type": "microsoft.resources/deployments",
+      "properties": {
+        "templateLink": {
+          "uri": "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/101-aks/azuredeploy.json"
+        }
+      }
+    },
+    {
+      "name": "local1",
+      "type": "microsoft.resources/deployments",
+      "properties": { 
+        "templateLink": {
+          "uri": "foo/blah/basic.json"
+        }
+      }
+    },
+    {
+      "name": "local2",
+      "type": "microsoft.resources/deployments",
+      "properties": { 
+        "templateLink": {
+          "uri": "foo/blah/web.json?rubbish=1"
+        }
+      },
+      "dependsOn": [ "web2" ]
+    },    
+    {
+      "name": "web",
+      "type": "microsoft.resources/deployments",
+      "properties": { 
+        "templateLink": {
+          "uri": "http://example.net/web.json"
+        }
+      }
+    },
+    {
+      "name": "web2",
+      "type": "microsoft.resources/deployments",
+      "properties": { 
+        "templateLink": {
+          "uri": "http://example.net/nested2/linked.json"
+        }
+      }
+    },
+    {
+      "name": "two-deep",
+      "type": "microsoft.resources/deployments",
+      "properties": { 
+        "templateLink": {
+          "uri": "http://example.net/nested2/two-deep.json"
+        }
+      }
+    }         
+  ]
+}

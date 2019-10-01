@@ -20,6 +20,9 @@ async function loadTemplate(filename) {
   }
 }
 
+//
+//
+//
 describe('Test: basic.json', function() {
   let res;
   it('Parse file', async function() {
@@ -39,19 +42,41 @@ describe('Test: basic.json', function() {
   })
 });
 
+//
+//
+//
 describe('Test: vars-params.json', function() {
   let res;
   it('Parse file', async function() {
     res = await loadTemplate("test/ref/vars-params.json");
   });
   it('Validate nodes & edges', async function() {
-    expect(res).to.have.lengthOf(6);
+    expect(res).to.have.lengthOf(8);
 
     expect(res).to.be.an("array").to.containSubset([{data:{name:"Lou%20Reed"}}]);
     expect(res).to.be.an("array").to.containSubset([{data:{name:"Waters"}}]);
     expect(res).to.be.an("array").to.containSubset([{data:{name:"Zappa"}}]);
+    expect(res).to.be.an("array").to.containSubset([{data:{name:"Bowie"}}]);
     expect(res).to.be.an("array").to.containSubset([{data:{name:"Iommi"}}]);
+    expect(res).to.be.an("array").to.containSubset([{data:{name:"Osbourne"}}]);
     expect(res).to.be.an("array").to.containSubset([{data:{name:"Cheese_A%20simple%20var"}}]);
     expect(res).to.be.an("array").to.containSubset([{data:{name:"A%20simple%20var_A%20simple%20name"}}]);
+  })
+});
+
+//
+//
+//
+describe('Test: linked.json', function() {
+  let res;
+  it('Parse file', async function() {
+    res = await loadTemplate("test/ref/linked.json");
+  });
+  
+  it('Validate nodes & edges', async function() {
+    expect(res).to.have.lengthOf(7);
+    expect(res).to.be.an("array").to.containSubset([{data:{name:"aks101cluster"}}]);
+
+    // !NOTE! Without a VS Code instance/workspace we can't fully test linked template resolution
   })
 });

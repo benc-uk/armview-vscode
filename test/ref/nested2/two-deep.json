@@ -1,0 +1,20 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+
+  "resources": [
+    {
+      "name": "function",
+      "type": "microsoft.web/functionapp"
+    },
+    {
+      "name": "appGw",
+      "type": "microsoft.resources/deployments",
+      "properties": { 
+        "templateLink": {
+          "uri": "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/solace-message-router/azuredeploy.json"
+        }
+      }
+    }
+  ]
+}

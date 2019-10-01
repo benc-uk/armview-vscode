@@ -45,22 +45,15 @@ class ARMParser {
 
     // Try to parse JSON file
     try {
-      // Strip out BOM characters for those mac owning weirdos
-      templateJSON = stripBom(templateJSON); 
-      // ARM templates do allow comments, but it's not part of the JSON spec 
-      templateJSON = stripJsonComments(templateJSON); 
-
-      // Switched to jsonlint for more meaningful error messages
-      this.template = jsonLint.parse(templateJSON);
+      this.template = this._parseJSON(templateJSON);
     } catch(err) {
-      err.message = "This template file is not valid JSON, please correct the errors below\n\n" + err.message
       throw err;
     }
 
     // Some simple validation it is an ARM template
-    if(!this.template.resources 
-      || !this.template.$schema 
-      || !this.template.$schema.toString().toLowerCase().includes("deploymenttemplate.json")) {
+    if(!this.template.resources || 
+       !this.template.$schema || 
+       !this.template.$schema.toString().toLowerCase().includes("deploymenttemplate.json")) {
       throw new Error("File doesn't appear to be an ARM template, but is valid JSON");      
     }
         
@@ -83,6 +76,50 @@ class ARMParser {
 
     // return result elements
     return this.elements;
+  }
+
+  //
+  // Try to parse JSON file with the various "relaxations" to the JSON spec that ARM permits
+  //
+  private _parseJSON(content: string) {
+    try {
+      // Strip out BOM characters for those mac owning weirdos
+      content = stripBom(content); 
+      
+      // ARM templates do allow comments, but it's not part of the JSON spec 
+      content = stripJsonComments(content); 
+
+      // ARM also allows for multi-line strings, which is AWFUL
+      // This is a crude attempt to cope with them by simply stripping the newlines if we find any
+
+      // Find all strings in double quotes (thankfully JSON only allows double quotes)
+      let re = /(".*?")/gims;
+      let match;
+      while ((match = re.exec(content)) != null) {
+        let string = match[1];
+        // Only work on strings that include a newline (or \n\r)
+        if(string.includes('\n')) {
+          console.log(`### ArmView: Found a multi-line string in your template at offset ${match.index}. Attempting to rectify to valid JSON`);
+          
+          // Mangle the content ripping the matched string out
+          let front = content.substr(0, match.index);
+          let back =  content.substr(match.index+string.length, content.length);
+          // Brute force removal!
+          // We preserve whitespace, but not sure if it's correct. We're outside the JSON spec!
+          let cleanString = string.replace(/\n/g, ''); //string.replace(/\s*\n\s*/g, ' ');
+          cleanString = cleanString.replace(/\r/g, '');
+
+          // Glue it back together
+          content = front + cleanString + back;
+        }
+      }
+
+      // Switched to jsonlint for more meaningful error messages
+      return jsonLint.parse(content);
+    } catch(err) {
+      err.message = "File is not valid JSON, please correct the error(s) below\n\n" + err.message
+      throw err;
+    }
   }
 
   //
@@ -131,7 +168,7 @@ class ARMParser {
         else
           res.type = res.type.toLowerCase();
 
-        // Assign a hashed id & full qualified name
+        // Assign a hashed id & full qualified name       
         res.id = utils.hashCode(this.name + '_' + res.type + '_' + res.name);
         res.fqn = res.type + '/' + res.name;
         
@@ -152,21 +189,17 @@ class ARMParser {
     // Try to parse JSON file
     let paramObject;
 
+    // Try to parse JSON file
     try {
-      // Strip out BOM characters for those mac owning weirdos
-      parameterJSON = stripBom(parameterJSON); 
-      // ARM parameters files do allow comments, but it's not part of the JSON spec 
-      parameterJSON = stripJsonComments(parameterJSON); 
-
-      // Switched to jsonlint for more meaningful error messages
-      paramObject = jsonLint.parse(parameterJSON);
+      paramObject = this._parseJSON(parameterJSON);
     } catch(err) {
-      err.message = "The parameter file is not valid JSON, please correct the errors below\n\n" + err.message
       throw err;
     }
     
     // Some simple ARM parameters validation
-    if(!paramObject.parameters || !paramObject.$schema || !paramObject.$schema.toString().includes("deploymentParameters.json")) {
+    if(!paramObject.parameters || 
+       !paramObject.$schema || 
+       !paramObject.$schema.toString().toLowerCase().includes("deploymentparameters.json")) {
       throw new Error("File doesn't appear to be an ARM parameters file, but is valid JSON");      
     }    
 
@@ -234,8 +267,8 @@ class ARMParser {
         }
   
         // Handle linked templates, oh boy, this is a whole world of pain
-        let linkedNodeCount: number = 0;
-        if(res.type == 'microsoft.resources/deployments' && res.properties.templateLink) {
+        let linkedNodeCount: number = -1;
+        if(res.type == 'microsoft.resources/deployments' && res.properties && res.properties.templateLink && res.properties.templateLink.uri) {
           let linkUri = res.properties.templateLink.uri;
           linkUri = this._evalExpression(linkUri, true);
 
@@ -316,7 +349,7 @@ class ARMParser {
                   if(searchResult && searchResult.length > 0) {
                     console.log(`### ArmView: Found & using file: ${searchResult[0]}`);
                     let fileContent = await vscode.workspace.fs.readFile(searchResult[0])
-                    subTemplate = fileContent.toString()
+                    subTemplate = fileContent.toString();
                   }
                 } catch(err) {
                   console.log("### ArmView: Warn! Local file error: "+err);
@@ -325,7 +358,7 @@ class ARMParser {
             }
           }
 
-          // If we have some data in subTemplate we were successful somehow reading the linked template!
+          // If we have some data in subTemplate we were successful somehow reading the linked template!         
           if(subTemplate) {
             linkedNodeCount = await this._parseLinkedOrNested(res, subTemplate)
           } else {
@@ -334,7 +367,7 @@ class ARMParser {
         }
         
         // For nested templates
-        if(res.type == 'microsoft.resources/deployments' && res.properties.template) {
+        if(res.type == 'microsoft.resources/deployments' && res.properties && res.properties.template) {
           let subTemplate;
           try {
             console.log("### ArmView: Processing nested template in: "+res.name);
@@ -412,35 +445,21 @@ class ARMParser {
           }
         }      
 
-        if(linkedNodeCount == 0) {    
-          // Stick resource node in resulting elements list
-          this.elements.push({
-            group: "nodes",
-            data: {
-              id: res.id,
-              name: utils.encode(res.name),
-              img: img,
-              kind: res.kind ? res.kind : '',
-              type: res.type,
-              label: label,
-              location: utils.encode(res.location),
-              extra: extraData
-            }
-          });
-        } else {
-          // This is a special group/container node for linked templates
-          // We give it same name/label as the 'deployments' resource would have
-          this.elements.push({ 
-            group: "nodes", 
-            data: { 
-              name: utils.encode(res.name),
-              label: label,
-              id: res.id,
-              img: img,
-              type: res.type,
-            } 
-          })
+        // Stick resource node in resulting elements list
+        let cytoNode = {
+          group: "nodes",
+          data: {
+            id: res.id,
+            name: utils.encode(res.name),
+            img: img,
+            kind: res.kind ? res.kind : '',
+            type: res.type,
+            label: label,
+            location: res.location ? utils.encode(res.location) : '',
+            extra: extraData
+          }
         }
+        this.elements.push(cytoNode);
   
         // Serious business - find the dependencies between resources
         if(res.dependsOn) {
@@ -480,7 +499,7 @@ class ARMParser {
     })
   }
 
-  private async _parseLinkedOrNested(res: any, subTemplate: string): Promise<number> {
+  private async _parseLinkedOrNested(res: any, subTemplate: string): Promise<number> {   
     // If we've got some actual data, means we read the linked file somehow
     if(subTemplate) {
       let subParser = new ARMParser(this.extensionPath, res.name, this.reporter, this.editor); 
@@ -493,8 +512,11 @@ class ARMParser {
         }
         
         for(let subres of linkRes) {
-          // !IMPORTANT! Setting parent puts these sub-resources into a group, which will have been created 
-          subres.data.parent = res.id;
+          // !IMPORTANT! Only set the parent if it's not already set
+          // Otherwise we overwrite the value when working with multiple levels deep of linkage
+          if(!subres.data.parent)
+            subres.data.parent = res.id;
+
           // Push linked resources into the main list
           this.elements.push(subres);
         }  
@@ -593,7 +615,10 @@ class ARMParser {
         resid = resid.replace(/^\//, '');
         resid = resid.replace(/\/\//, '/');
         return resid;
-      }            
+      }    
+      if(funcName == 'copyIndex') {
+        return 0
+      }                 
     }
 
     // It looks like a string literal
@@ -635,7 +660,7 @@ class ARMParser {
        && !(propAccessor.charAt(1) >= '0' && propAccessor.charAt(1) <= '9')
        && !(propAccessor.charAt(1) == "'")) {
       // Evaluate propAccessor in case it includes an expression
-      let propAccessorResolved = this._evalExpression(propAccessor)
+      let propAccessorResolved = this._evalExpression(propAccessor, false)
       // If we get a string back it need's quoting, e.g. foo['baz']
       if(typeof(propAccessorResolved) == 'string') {
         propAccessorResolved = `'${propAccessorResolved}'`

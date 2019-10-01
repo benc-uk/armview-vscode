@@ -263,7 +263,10 @@ function getWebviewContent() {
 		<button onclick="toggleLabels()"><img src="${assetsPath}/img/toolbar/labels.svg">&nbsp; Labels</button>
 		<button onclick="cy.fit()"><img src="${assetsPath}/img/toolbar/fit.svg">&nbsp; Re-fit</button>
 		<button onclick="toggleSnap()" id="snapbut"><img src="${assetsPath}/img/toolbar/snap.svg">&nbsp; Snap</button>
-		<button onclick="reLayout()"><img src="${assetsPath}/img/toolbar/layout.svg">&nbsp; Layout</button>
+		Layout:
+		<button onclick="reLayout('breadthfirst', true)"><img src="${assetsPath}/img/toolbar/tree.svg"></button>
+		<button onclick="reLayout('grid', true)"><img src="${assetsPath}/img/toolbar/grid.svg"></button>
+		<!--button onclick="reLayout('cose', true)"><img src="${assetsPath}/img/toolbar/cose.svg"></button-->
 		&nbsp;&nbsp;	
 		<button onclick="sendMessage('paramsClicked')"><img src="${assetsPath}/img/toolbar/params.svg">&nbsp; Params</button>
 		<button onclick="sendMessage('filtersClicked')"><img src="${assetsPath}/img/toolbar/filter.svg">&nbsp; Filter</button>
