@@ -18,6 +18,7 @@ const telemetryKey = '0e2a6ba6-6c52-4e94-86cf-8dc87830e82e';
 // Main globals
 var panel: vscode.WebviewPanel | undefined = undefined;
 var extensionPath: string;
+var themeName: string;
 var editor: vscode.TextEditor;
 var paramFileContent: string;
 var filters: string;
@@ -32,7 +33,7 @@ var typingTimeout: any;
 //
 export function activate(context: vscode.ExtensionContext) {
 	extensionPath = context.extensionPath;
-
+	
   context.subscriptions.push(
     vscode.commands.registerCommand('armView.start', () => {
 			// Check for open editors that are showing JSON
@@ -51,7 +52,10 @@ export function activate(context: vscode.ExtensionContext) {
 			editor = vscode.window.activeTextEditor;
 			paramFileContent = "";
 
-			if (panel) {
+			themeName = vscode.workspace.getConfiguration('armView').get('iconTheme', 'original');
+			console.log(`### ArmView: Activating ${extensionPath} with theme ${themeName}`);
+		
+			if(panel) {
 				// If we already have a panel, show it
 				panel.reveal();
 				return;
@@ -121,6 +125,7 @@ export function activate(context: vscode.ExtensionContext) {
         message => {
 					// Initial load of content, done at startup
           if (message.command == 'initialized') {
+						console.log("### ArmView: Initialization of WebView complete, now parsing template...");
 						refreshView();
 					}
 					
@@ -208,7 +213,7 @@ async function refreshView() {
 
 		// Parse the source template JSON
 		let templateJSON = editor.document.getText();
-		var parser = new ARMParser(extensionPath, "main", reporter, editor);    
+		var parser = new ARMParser(`${extensionPath}/assets/img/azure/${themeName}`, "main", reporter, editor);    
 		try {
 			let result = await parser.parse(templateJSON, paramFileContent);			
 			reporter.sendTelemetryEvent('parsedOK', {'nodeCount': result.length.toString(), 'filename': editor.document.fileName});
@@ -234,8 +239,10 @@ function getWebviewContent() {
 
 	if(!panel)
 		return "";
-
+	
 	const assetsPath = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets')));
+	const iconThemeBase = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'img', 'azure', themeName))).toString();
+
 	return `
 <!DOCTYPE html>
 <html lang="en">
@@ -294,7 +301,7 @@ function getWebviewContent() {
 
 	<script>
 		// **** Init Cytoscape and canvas (function in main.js) ****
-		init("${assetsPath}");
+		init("${iconThemeBase}");
 	</script>
 
 </body>

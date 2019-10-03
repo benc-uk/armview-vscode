@@ -18,7 +18,7 @@ class ARMParser {
   template: any;
   error: any;
   elements: any[];
-  extensionPath: string;
+  iconBasePath: string;
   reporter: TelemetryReporter | undefined;
   editor: TextEditor | undefined;
   name: string;
@@ -26,11 +26,11 @@ class ARMParser {
   //
   // Create a new ARM Parser
   //
-  constructor(extensionPath: string, name: string, reporter?: TelemetryReporter, editor?: TextEditor) {
+  constructor(iconBasePath: string, name: string, reporter?: TelemetryReporter, editor?: TextEditor) {
     this.template = null;
     this.error = null;
     this.elements = [];
-    this.extensionPath = extensionPath;
+    this.iconBasePath = iconBasePath;
     this.reporter = reporter;
     this.editor = editor;
     this.name = name;
@@ -230,39 +230,39 @@ class ARMParser {
         let label = res.type.replace(/^.*\//i, '');
   
         // Workout which icon image to use, no way to catch missing images client side so we do it here
-        let img = '/img/arm/default.svg';
-        let iconExists = require('fs').existsSync(path.join(this.extensionPath, `assets/img/arm/${res.type}.svg`))
+        let img = 'default.svg';
+        let iconExists = require('fs').existsSync(path.join(this.iconBasePath, `/${res.type}.svg`))
         if(iconExists) {
-          img = `/img/arm/${res.type}.svg`;
+          img = `${res.type}.svg`;
         } else {
           // API Management has about 7 million sub-resources, rather than include them all, we assign a custom default for APIM
           if(res.type.includes('apimanagement')) {
-            img = '/img/arm/microsoft.apimanagement/default.svg';
+            img = 'microsoft.apimanagement/default.svg';
           } else {
             // Send telemetry on missing icons, this helps me narrow down which ones to add in the future
             if(this.reporter) this.reporter.sendTelemetryEvent('missingIcon', { 'resourceType': res.type, 'resourceFQN': res.fqn });
             // Use default icon as nothing else found
-            img = '/img/arm/default.svg';
+            img = 'default.svg';
           }
         }
         
         // App Services - Sites & plans can have different icons depending on 'kind'
         if(res.kind && res.type.includes('microsoft.web')) {
-          if(res.kind.toLowerCase().includes('api')) img = `/img/arm/microsoft.web/apiapp.svg`;
-          if(res.kind.toLowerCase().includes('mobile')) img = `/img/arm/microsoft.web/mobileapp.svg`;
-          if(res.kind.toLowerCase().includes('function')) img = `/img/arm/microsoft.web/functionapp.svg`;
-          if(res.kind.toLowerCase().includes('linux')) img = `/img/arm/microsoft.web/serverfarmslinux.svg`;
+          if(res.kind.toLowerCase().includes('api')) img = `microsoft.web/apiapp.svg`;
+          if(res.kind.toLowerCase().includes('mobile')) img = `microsoft.web/mobileapp.svg`;
+          if(res.kind.toLowerCase().includes('function')) img = `microsoft.web/functionapp.svg`;
+          if(res.kind.toLowerCase().includes('linux')) img = `microsoft.web/serverfarmslinux.svg`;
         }
         
         // Event grid subscriptions can sit under many resource types
         if(res.type.includes('eventsubscriptions')) {
-          img = `/img/arm/microsoft.eventgrid/eventsubscriptions.svg`;
+          img = `microsoft.eventgrid/eventsubscriptions.svg`;
         }
 
         // Linux VM icon with Tux :)
         if(res.type.includes('microsoft.compute') && res.properties && res.properties.osProfile) {
           if(res.properties.osProfile.linuxConfiguration) {
-            img = `/img/arm/microsoft.compute/virtualmachines-linux.svg`;
+            img = `microsoft.compute/virtualmachines-linux.svg`;
           }
         }
   
@@ -502,7 +502,7 @@ class ARMParser {
   private async _parseLinkedOrNested(res: any, subTemplate: string): Promise<number> {   
     // If we've got some actual data, means we read the linked file somehow
     if(subTemplate) {
-      let subParser = new ARMParser(this.extensionPath, res.name, this.reporter, this.editor); 
+      let subParser = new ARMParser(this.iconBasePath, res.name, this.reporter, this.editor); 
       try {
         let linkRes = await subParser.parse(subTemplate);
         

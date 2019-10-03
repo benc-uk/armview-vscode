@@ -19,7 +19,7 @@ var filters = "";           // Resource filter string (comma sep list)
 function init(prefix) {
   iconPrefix = prefix
   filters = "";
-  hideInfo();
+  hideInfo();  
 
   // Important step initializes main Cytoscape object 'cy'
   cy = cytoscape({ 
@@ -49,7 +49,7 @@ function init(prefix) {
       }
       
       // The rest of this is just pulling info from the node's data and showing it in a HTML div & table
-      document.getElementById('infoimg').setAttribute('src', iconPrefix + evt.target.data('img'));
+      document.getElementById('infoimg').setAttribute('src', iconPrefix + '/' + evt.target.data('img'));
 
       document.getElementById('infotable').innerHTML = ''
       _addInfo('Name', evt.target.data('name'));
@@ -75,7 +75,6 @@ function init(prefix) {
   // Send message that we're initialized and ready for data
   vscode = acquireVsCodeApi();
   vscode.postMessage({ command: 'initialized' })  
-  console.log("### ArmView: Initialization complete");
 }
 
 //
@@ -143,7 +142,7 @@ function reLayout(mode, animate) {
   cy.style().selector('node').style({
     'background-opacity': 0,
     'label': node => { return decodeURIComponent(node.data(labelField)) },
-    'background-image': node => { return iconPrefix + node.data('img') },
+    'background-image': node => { return iconPrefix + '/' + node.data('img') },
     'background-width': '90%',
     'background-height': '90%',
     'shape': 'roundrectangle',
