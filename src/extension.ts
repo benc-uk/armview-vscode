@@ -137,7 +137,15 @@ export function activate(context: vscode.ExtensionContext) {
 					// Message from webview - user clicked 'Filters' button
 					if (message.command == 'filtersClicked') {						
 						pickFilters();
-          }					
+					}
+
+					// Message from webview - user clicked 'Filters' button
+					if (message.command == 'exportPNG') {	
+						//console.log(message.payload);
+											
+						savePNG(message.payload);
+					}
+					
         },
         undefined,
         context.subscriptions
@@ -155,6 +163,14 @@ export function activate(context: vscode.ExtensionContext) {
       );
     })
   );
+}
+
+async function savePNG(pngBase64: string) {
+	let saveAs = await vscode.window.showSaveDialog({ saveLabel: "Save PNG", filters: {'Images': ['png']} });
+	if(saveAs) {
+		let buf = Buffer.from(pngBase64, 'base64');
+		vscode.workspace.fs.writeFile(saveAs, buf)
+	}
 }
 
 //
@@ -279,6 +295,7 @@ function getWebviewContent() {
 		<button onclick="sendMessage('filtersClicked')"><img src="${assetsPath}/img/toolbar/filter.svg">&nbsp; Filter</button>
 		&nbsp;&nbsp;
 		<button onclick="sendMessage('initialized')"><img src="${assetsPath}/img/toolbar/reload.svg">&nbsp; Reload</button>
+		<button onclick="exportPNG()"><img src="${assetsPath}/img/toolbar/export.svg">&nbsp; Export</button>
 	</div>
 
 	<div class="loader"></div>

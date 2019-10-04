@@ -56,15 +56,15 @@
           "uri": "http://example.net/nested2/linked.json"
         }
       }
-    },
-    {
-      "name": "two-deep",
-      "type": "microsoft.resources/deployments",
-      "properties": { 
-        "templateLink": {
-          "uri": "http://example.net/nested2/two-deep.json"
-        }
-      }
-    }         
+    }
+    // {
+    //   "name": "two-deep",
+    //   "type": "microsoft.resources/deployments",
+    //   "properties": { 
+    //     "templateLink": {
+    //       "uri": "http://example.net/nested2/two-deep.json"
+    //     }
+    //   }
+    // }         
   ]
 }

@@ -128,12 +128,12 @@ function reLayout(mode, animate) {
   // Set colors in keeping with VS code theme (might be dark or light)
   let bgColor = window.getComputedStyle(document.getElementsByTagName('body')[0]).getPropertyValue('background-color');
   let textColor = '#eeeeee';
-  let lineColor = '#666666';
+  let lineColor = '#fff';
   let borderColor = window.getComputedStyle(document.getElementsByTagName('button')[0]).getPropertyValue('background-color');
   let textColorOutline = bgColor;
   if(document.getElementsByTagName('body')[0].classList.contains("vscode-light")) {
     textColor = '#222222';
-    lineColor = '#cccccc';
+    lineColor = '#000';
   } 
 
   hideInfo();
@@ -172,7 +172,8 @@ function reLayout(mode, animate) {
     'width': 6,
     'line-color': lineColor,
     'arrow-scale': '1.5',
-    'target-arrow-color': lineColor
+    'target-arrow-color': lineColor,
+    'opacity': 0.3
   });
 
   // Bounding box for groups
@@ -180,10 +181,10 @@ function reLayout(mode, animate) {
     'background-image': null,
     'label': node => { return getLabel(node) }, //decodeURIComponent(node.data(labelField)) },
     'border-width': '4',
-    'border-color': '#000',
-    'border-opacity': 0.5,
-    'background-color': '#000',
-    'background-opacity': 0.2,
+    'border-color': borderColor,
+    'border-opacity': 0.3,
+    'background-color': borderColor,
+    'background-opacity': 0.1,
     'shape': 'roundrectangle',
     'font-family': '"Segoe UI", Arial, Helvetica, sans-serif',
     'font-size': '15vh',
@@ -370,4 +371,9 @@ function getLabel(node) {
     label = label.substr(0, 24) + "…"
   }
   return label;
+}
+
+function exportPNG() {
+  let data = cy.png({ scale: 2.0, output: 'base64' });  
+  vscode.postMessage({ command: "exportPNG", payload: data });
 }
