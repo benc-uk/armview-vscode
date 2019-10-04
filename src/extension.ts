@@ -26,7 +26,7 @@ var reporter: TelemetryReporter;
 
 // Used to buffer/delay updates when typing
 var refreshedTime: number = Date.now();
-var typingTimeout: any;
+var typingTimeout: NodeJS.Timeout | undefined = undefined;
 
 //
 // Main extension activation 
@@ -91,9 +91,9 @@ export function activate(context: vscode.ExtensionContext) {
 				// If an update is scheduled, then skip
 				if(typingTimeout) return;
 
-				// Buffer/delay updates by 1.5 seconds
-				if(Date.now() - refreshedTime < 1500) {
-					typingTimeout = setTimeout(refreshView, 1500);
+				// Buffer/delay updates by 2 seconds
+				if(Date.now() - refreshedTime < 2000) {
+					typingTimeout = setTimeout(refreshView, 2000);
 					return;
 				}
 				
@@ -140,9 +140,7 @@ export function activate(context: vscode.ExtensionContext) {
 					}
 
 					// Message from webview - user clicked 'Filters' button
-					if (message.command == 'exportPNG') {	
-						//console.log(message.payload);
-											
+					if (message.command == 'exportPNG') {											
 						savePNG(message.payload);
 					}
 					
@@ -156,7 +154,8 @@ export function activate(context: vscode.ExtensionContext) {
         () => {
 					reporter.dispose();
 					panel = undefined
-					clearTimeout(typingTimeout)
+					if(typingTimeout)
+						clearTimeout(typingTimeout)
 				},
         null,
         context.subscriptions
@@ -216,10 +215,12 @@ async function pickFilters() {
 async function refreshView() {
 	// Reset timers for typing updates
 	refreshedTime = Date.now();
-	typingTimeout = undefined;
+	if(typingTimeout)
+		clearTimeout(typingTimeout);
+	typingTimeout = undefined
 
 	if(!panel)
-		return
+		return;
 
 	if(editor) {
 		// Skip non-JSON
@@ -236,8 +237,9 @@ async function refreshView() {
 			panel.webview.postMessage({ command: 'newData', payload: result });
 			panel.webview.postMessage({ command: 'resCount', payload: result.length.toString() });
 		} catch(err) {
-			console.log('### ArmView: ERROR STACK: ' + err.stack)
-			reporter.sendTelemetryEvent('parseError', {'error': err, 'filename': editor.document.fileName});
+			// Disable logging and telemetry for now
+			//console.log('### ArmView: ERROR STACK: ' + err.stack)
+			//reporter.sendTelemetryEvent('parseError', {'error': err, 'filename': editor.document.fileName});
 			panel.webview.postMessage({ command: 'error', payload: err.message })
 		}
 	} else {
