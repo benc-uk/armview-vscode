@@ -1,3 +1,9 @@
+## 0.3.1
+- Export as PNG
+- Theme support and new icon set (not fully implemented, behind a setting)
+- Improved colouring
+
+
 ## 0.3.0
 - Bug fixes, the usual; variable resolution and linked templates
 - Much improved handling of multi-level linked templates (links within links)
