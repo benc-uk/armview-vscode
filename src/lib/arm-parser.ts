@@ -271,9 +271,9 @@ class ARMParser {
         if(res.type == 'microsoft.resources/deployments' && res.properties && res.properties.templateLink && res.properties.templateLink.uri) {
           let linkUri = res.properties.templateLink.uri;
           linkUri = this._evalExpression(linkUri, true);
-          
+
           // Strip off everything weird after file extension, i.e. after any ? or { characters we find
-          let match = linkUri.match(/(.*?\..*?)($|\?|{)/);
+          let match = linkUri.match(/(.*?\.\w*?)($|\?|{)/);
           if(match) {
             linkUri = match[1]
           }
