@@ -271,13 +271,12 @@ class ARMParser {
         if(res.type == 'microsoft.resources/deployments' && res.properties && res.properties.templateLink && res.properties.templateLink.uri) {
           let linkUri = res.properties.templateLink.uri;
           linkUri = this._evalExpression(linkUri, true);
-
-          // Strip off everything after file extension, i.e. after ? or { characters
-          let match = linkUri.match(/(.*?)($|\?|{)/);
+          
+          // Strip off everything weird after file extension, i.e. after any ? or { characters we find
+          let match = linkUri.match(/(.*?\..*?)($|\?|{)/);
           if(match) {
             linkUri = match[1]
           }
-           
           extraData['template-url'] = linkUri;
 
           // OK let's try to handle linked templates shall we? O_O
@@ -299,7 +298,7 @@ class ARMParser {
             console.log("### ArmView: Linked template was fetched from external URL");
           } catch(err) {
             // That failed, in most cases we'll end up here 
-            console.log(`### ArmView: ${err} URL not available, will search filesystem`);
+            console.log(`### ArmView: '${err}' URL not available, will search filesystem`);
             subTemplate = ""; // !IMPORTANT The above step might have failed but set subTemplate to shite
 
             // This crazy code tries to search the loaded workspace for the file, two different ways
