@@ -373,6 +373,9 @@ function getLabel(node) {
   return label;
 }
 
+//
+// Export cy canvas as a PNG file
+//
 function exportPNG() {
   let data = cy.png({ scale: 2.0, output: 'base64' });  
   vscode.postMessage({ command: "exportPNG", payload: data });

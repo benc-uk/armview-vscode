@@ -1,7 +1,8 @@
 ## 0.3.1
 - Export as PNG
-- Theme support and new icon set (not fully implemented, behind a setting)
-- Improved colouring
+- Theme support (not fully implemented, only one theme currently 'original')
+- Improved colouring on links and linked deployments
+- Bug fixes on linked templates, quelle suprise
 
 
 ## 0.3.0

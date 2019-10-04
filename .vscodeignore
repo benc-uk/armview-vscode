@@ -5,3 +5,4 @@ tsconfig.json
 tslint.json
 test/**
 .github/**
+local/**

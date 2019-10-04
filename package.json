@@ -54,8 +54,7 @@
 				"armView.iconTheme": {
 					"type": "string",
 					"enum": [
-						"original",
-						"2019"
+						"original"
 					],
 					"default": "original",
 					"description": "Icon theme to use when displaying resource"
