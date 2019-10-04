@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "testParam": { 
+      "defaultValue": "Wibble"
+    }
+  },
+  "variables": {
+    "testVar": {
+      "thing": "Yes"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Sql/servers/databases/transparentDataEncryption",
+      "tags": {
+        "displayname": "Tag displayName used: \\ / %20 ' : ~ &"
+      },
+      "name": "Never shown"
+    },
+    {
+      "type": "Microsoft.Sql/servers/databases",
+      "tags": {
+        "fromVar": "[concat(variables('testVar').thing, ' and No')]",
+        "fromParam": "[parameters('testParam')]"
+      },
+      "name": "database-1"
+    }    
+  ],
+  "outputs": {
+  }
+}
