@@ -106,6 +106,7 @@
 		"jsonlint": "^1.6.3",
 		"strip-bom": "^3.0.0",
 		"strip-json-comments": "^3.0.1",
+		"uuid": "^3.3.3",
 		"vscode-extension-telemetry": "^0.1.2"
 	},
 	"devDependencies": {
