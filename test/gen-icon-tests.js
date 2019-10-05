@@ -23,10 +23,10 @@ function saveTemplate(filename, res) {
   }
 
   out = JSON.stringify(template, null, 2);
-  fs.writeFileSync(`${filename}.json`, out);
+  fs.writeFileSync(`icons/${filename}.json`, out);
 }
 
-const BASE_DIR = '../assets/img/arm/'
+const BASE_DIR = '../assets/img/azure/original/'
 list = []
 walkSync(BASE_DIR, list)
 let resources = []
