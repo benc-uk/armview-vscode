@@ -32,9 +32,10 @@ Extension as been tested successfully against all 900+ [Azure Quickstart Templat
 - Drag icons around to layout as your wish, one tip is to click 'Re-fit' after moving to get the best view & zoom level
 
 ## Toolbar
-- Click the 'Labels' toolbar button to toggle labels from resource names to resource types
-- Click the 'Re-fit' toolbar button to refit the view to the best zoom level
-- Click the 'Snap' toolbar button to toggle snap to grid mode on/off
+- Click the 'Labels' button to toggle labels from resource names to resource types
+- Click the 'Re-fit' button to refit the view to the best zoom level
+- Click the 'Snap' button to toggle snap to grid mode on/off
+- Click the 'Export' button to export as PNG, you will be prompted for a filename
 - Two auto layout modes are available:
   - 'Tree' lays out the nodes in a hierarchical manner, ok for small templates, also the default
   - 'Grid' puts the nodes on a grid, better for large templates but will often not make logical sense
