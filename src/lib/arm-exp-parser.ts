@@ -78,8 +78,7 @@ export default class ARMExpressionParser {
         return this.funcConcat(funcParams, '');
       }
       if(funcName == 'uri') {
-        // Treat as concat
-        return this.funcConcat(funcParams, '');
+        return this.funcUri(funcParams);
       }
       if(funcName == 'replace') {
         return this.funcReplace(funcParams);
@@ -103,7 +102,11 @@ export default class ARMExpressionParser {
       }    
       if(funcName == 'copyindex') {
         return 0
-      }                 
+      }
+      if(funcName == 'guid') {
+        const uuidv5 = require('uuid/v5');
+        return uuidv5(this.funcConcat(funcParams, ''), '36c56b01-f9c9-4c7d-9786-0372733417ea');
+      }                     
     }
 
     // It looks like a string literal
@@ -233,6 +236,28 @@ export default class ARMExpressionParser {
   }
 
   //
+  // Emulate the ARM function `uri()` 
+  //
+  private funcUri(funcParams: string) {
+    let paramList = this.parseParams(funcParams);
+
+    if(paramList.length == 2) {
+      let sep = '';
+      let base = this.eval(paramList[0]);
+      let rel = this.eval(paramList[1]);
+      if(!(base.endsWith('/') || rel.startsWith('/'))) sep = '/'
+      if(base.endsWith('/') && rel.startsWith('/')) {
+        sep = ''
+        base = base.substr(0, base.length - 1)
+      }
+
+      return base + sep + rel;
+    }
+
+    return "{invalid-uri}";
+  }  
+
+  //
   // Emulate the ARM function `replace()` 
   //
   private funcReplace(funcParams: string) {
@@ -241,7 +266,7 @@ export default class ARMExpressionParser {
     var search = this.eval(paramList[1]);
     var replace = this.eval(paramList[2]);
     
-    return input.replace(search, replace);
+    return input.replace(new RegExp(search, 'g'), replace);
   } 
   
   //
@@ -265,9 +290,9 @@ export default class ARMExpressionParser {
     let paramList = this.parseParams(funcParams);
     var str = this.eval(paramList[0]);
     var start = parseInt(this.eval(paramList[1]));
-    var end = parseInt(this.eval(paramList[2]));
+    var len = parseInt(this.eval(paramList[2]));
     
-    return this.eval(str).substring(start, end);
+    return this.eval(str).substring(start, start + len);
   }
 
   //
