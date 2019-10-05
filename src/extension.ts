@@ -6,13 +6,13 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { ARMParser } from './lib/arm-parser';
+import ARMParser from './lib/arm-parser';
 import TelemetryReporter from 'vscode-extension-telemetry';
 
 // Set up telemetry logging
-const pjson = require('../package.json');
-const telemetryExtensionId = pjson.publisher + "." + pjson.name;
-const telemetryExtensionVersion = pjson.version; 
+const packageJson = require('../package.json');
+const telemetryExtensionId = packageJson.publisher + "." + packageJson.name;
+const telemetryExtensionVersion = packageJson.version; 
 const telemetryKey = '0e2a6ba6-6c52-4e94-86cf-8dc87830e82e'; 
 
 // Main globals
@@ -230,7 +230,11 @@ async function refreshView() {
 
 		// Parse the source template JSON
 		let templateJSON = editor.document.getText();
+		
+		// Create a new ARM parser, giving icon prefix based on theme, and name it "main"
+		// Additionally passing reporter and editor enables telemetry and linked template discovery in VS Code workspace
 		var parser = new ARMParser(`${extensionPath}/assets/img/azure/${themeName}`, "main", reporter, editor);    
+		
 		try {
 			let result = await parser.parse(templateJSON, paramFileContent);			
 			reporter.sendTelemetryEvent('parsedOK', {'nodeCount': result.length.toString(), 'filename': editor.document.fileName});

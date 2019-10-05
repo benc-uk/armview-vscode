@@ -82,7 +82,7 @@ function init(prefix) {
 //
 function displayData(data) {
   console.log("### ArmView: Displaying received data");
-  console.dir(JSON.stringify(data, null, 1));
+  //console.dir(JSON.stringify(data, null, 1));
   
   cy.remove('*');
   cy.add(data);

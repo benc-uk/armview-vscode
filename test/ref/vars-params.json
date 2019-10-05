@@ -62,12 +62,12 @@
     {
       // Name should be: "Osbourne"
       "name": "[variables('arrayVar')[0]]",
-      "type": "microsoft.compute/disks"
+      "type": "microsoft.compute/availabilitysets"
     },
     {
       // Name should be: "Iommi"
       "name": "[variables('arrayVar')[variables('thisIsOne')]]",
-      "type": "microsoft.compute/disks"
+      "type": "microsoft.compute/availabilitysets"
     }    
   ]
 }

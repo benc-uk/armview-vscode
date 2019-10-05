@@ -1,5 +1,5 @@
 const fail = require("assert").fail;
-const ARMParser = require('../out/lib/arm-parser').default; 
+const ARMParser = require('../out/lib/arm-parser').default;
 const fs = require('fs');
 
 const chai = require('chai');
@@ -74,7 +74,7 @@ describe('Test: linked.json', function() {
   });
   
   it('Validate nodes & edges', async function() {
-    expect(res).to.have.lengthOf(7);
+    expect(res).to.have.lengthOf(8);
     expect(res).to.be.an("array").to.containSubset([{data:{name:"aks101cluster"}}]);
 
     // !NOTE! Without a VS Code instance/workspace we can't fully test linked template resolution

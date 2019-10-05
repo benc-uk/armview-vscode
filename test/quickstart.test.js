@@ -1,5 +1,5 @@
 const fail = require("assert").fail;
-const ARMParser = require('../out/lib/arm-parser').default; //from '../../src/lib/arm-parser';
+const ARMParser = require('../out/lib/arm-parser').default;
 //import * as vscode from 'vscode';
 const fs = require('fs');
 

@@ -1,7 +1,7 @@
 //
 // arm-parser.ts - ARM Parser 
 // Class to parse ARM templates and return a set of elements for rendering with Cytoscape
-// Ben Coleman, 2017
+// Ben Coleman, 2017 & 2019
 // Modified & updated for VS Code extension. Converted (crudely) to TypeScript, Oct 2019
 //
 
@@ -13,9 +13,11 @@ import TelemetryReporter from 'vscode-extension-telemetry';
 import { TextEditor } from 'vscode';
 const jsonLint = require('jsonlint');
 import { Template, CytoscapeNode, Resource } from './arm-parser-types'
+import ARMExpressionParser from './arm-exp-parser'
 
-export class ARMParser {
+export default class ARMParser {
   template: Template;
+  expParser: ARMExpressionParser;
   error: Error | undefined;
   elements: CytoscapeNode[];
   iconBasePath: string;
@@ -27,7 +29,10 @@ export class ARMParser {
   // Create a new ARM Parser
   //
   constructor(iconBasePath: string, name: string, reporter?: TelemetryReporter, editor?: TextEditor) {
+    // Both of these are overwritten when parse() is called
     this.template = {$schema: '', parameters: {}, variables: {}, resources: []};
+    this.expParser = new ARMExpressionParser(this.template);
+    
     this.elements = [];
     this.iconBasePath = iconBasePath;
     this.reporter = reporter;
@@ -44,7 +49,7 @@ export class ARMParser {
 
     // Try to parse JSON file
     try {
-      this.template = this._parseJSON(templateJSON);
+      this.template = this.parseJSON(templateJSON);
     } catch(err) {
       throw err;
     }
@@ -55,21 +60,24 @@ export class ARMParser {
        !this.template.$schema.toString().toLowerCase().includes("deploymenttemplate.json")) {
       throw new Error("File doesn't appear to be an ARM template, but is valid JSON");      
     }
+
+    // From here, we're pretty sure we're dealing with a legit and valid ARM template
+    this.expParser = new ARMExpressionParser(this.template)
         
     // New first pass, apply supplied parameters if any
     if(parameterJSON) {
-      this._applyParams(parameterJSON);
+      this.applyParams(parameterJSON);
       if(this.error) throw this.error;
       console.log(`### ArmView: Parameter file applied`);
     }
     
     // First pass, fix types and assign ids with a hash function
-    this._preProcess(this.template.resources, null);
+    this.preProcess(this.template.resources, null);
     if(this.error) throw this.error;
     console.log(`### ArmView: Pre-process pass complete`);
 
     // 2nd pass, work on resources
-    await this._processResources(this.template.resources);
+    await this.processResources(this.template.resources);
     if(this.error) throw this.error;
     console.log(`### ArmView: Parsing complete, found ${this.elements.length} elements in template ${this.name}`);
 
@@ -80,7 +88,7 @@ export class ARMParser {
   //
   // Try to parse JSON file with the various "relaxations" to the JSON spec that ARM permits
   //
-  private _parseJSON(content: string) {
+  private parseJSON(content: string) {
     try {
       // Strip out BOM characters for those mac owning weirdos, not sure this is needed
       if (content.charCodeAt(0) === 0xFEFF) {
@@ -126,32 +134,33 @@ export class ARMParser {
   //
   // Pre-parser function, does some work to make life easier for the main parser 
   //
-  private _preProcess(resources: Resource[], parentRes: any) {
+  private preProcess(resources: Resource[], parentRes: any) {
     console.log(`### ArmView: Pre-process starting...`);
     resources.forEach(res => {
       try {
         // Resolve and eval resource name
-        res.name = this._evalExpression(res.name, true);
+        res.name = this.expParser.eval(res.name, true);
         
         // Resolve and eval resource location
         if(res.location) {
-          res.location = this._evalExpression(res.location, true);
+          res.location = this.expParser.eval(res.location, true);
         }
 
         // Resolve and eval resource kind
         if(res.kind) {
-          res.kind = this._evalExpression(res.kind, true);
+          res.kind = this.expParser.eval(res.kind, true);
         }
 
-        // Resolve and eval resource tags
-        if(res.tags && typeof res.tags == "string") {
-          res.tags = this._evalExpression(res.tags, true);
-        }     
+        // Removed, I don't think this is valid in a template
+        // if(res.tags && typeof res.tags == "string") {
+        //   res.tags = this.expParser.eval(res.tags, true);
+        // }     
 
+        // Resolve and eval resource tags
         if(res.tags && typeof res.tags == "object") {
           Object.keys(res.tags).forEach(tagname => {
             let tagval = res.tags[tagname].toString();
-            res.tags[tagname] = this._evalExpression(tagval, true);
+            res.tags[tagname] = this.expParser.eval(tagval, true);
           });
         } 
 
@@ -160,7 +169,7 @@ export class ARMParser {
           Object.keys(res.sku).forEach(propName => {
             if(res.sku) {
               let propVal = res.sku[propName].toString();
-              res.sku[propName] = this._evalExpression(propVal, true);
+              res.sku[propName] = this.expParser.eval(propVal, true);
             }
           });
         }   
@@ -177,7 +186,7 @@ export class ARMParser {
         
         // Recurse into nested resources
         if(res.resources) {
-          this._preProcess(res.resources, res)
+          this.preProcess(res.resources, res)
         }
       } catch (err) {
         this.error = err; //`Unable to pre-process ARM resources, template is probably invalid. ${ex}`
@@ -185,16 +194,16 @@ export class ARMParser {
     });
   }
   
-    //
+  //
   // Pre-parser function, does some work to make life easier for the main parser 
   //
-  private _applyParams(parameterJSON: string) {
+  private applyParams(parameterJSON: string) {
     // Try to parse JSON file
     let paramObject;
 
     // Try to parse JSON file
     try {
-      paramObject = this._parseJSON(parameterJSON);
+      paramObject = this.parseJSON(parameterJSON);
     } catch(err) {
       throw err;
     }
@@ -223,7 +232,7 @@ export class ARMParser {
   //
   // Main function to parse a resource, this will recurse into nested resources
   //
-  private async _processResources(resources: Resource[]) {
+  private async processResources(resources: Resource[]) {
     for(let res of resources) {
       try {
         let extraData: any;
@@ -273,7 +282,7 @@ export class ARMParser {
         let linkedNodeCount: number = -1;
         if(res.type == 'microsoft.resources/deployments' && res.properties && res.properties.templateLink && res.properties.templateLink.uri) {
           let linkUri = res.properties.templateLink.uri;
-          linkUri = this._evalExpression(linkUri, true);
+          linkUri = this.expParser.eval(linkUri, true);
 
           // Strip off everything weird after file extension, i.e. after any ? or { characters we find
           let match = linkUri.match(/(.*?\.\w*?)($|\?|{)/);
@@ -362,7 +371,7 @@ export class ARMParser {
 
           // If we have some data in subTemplate we were successful somehow reading the linked template!         
           if(subTemplate) {
-            linkedNodeCount = await this._parseLinkedOrNested(res, subTemplate)
+            linkedNodeCount = await this.parseLinkedOrNested(res, subTemplate)
           } else {
             console.log("### ArmView: Warn! Unable to locate linked template");
           }
@@ -378,7 +387,7 @@ export class ARMParser {
 
           // If we have some data
           if(subTemplate) {
-            linkedNodeCount = await this._parseLinkedOrNested(res, subTemplate);
+            linkedNodeCount = await this.parseLinkedOrNested(res, subTemplate);
           } else {
             console.log("### ArmView: Warn! Unable to parse nested template");
           }
@@ -390,7 +399,7 @@ export class ARMParser {
             let tagval = res.tags[tagname];
             //tagval = utils.encode(this._evalExpression(tagval));
             // Some crazy people put expressions in their tag names, I mean really...
-            tagname = utils.encode(this._evalExpression(tagname));
+            tagname = utils.encode(this.expParser.eval(tagname));
 
             // Handle special case for displayName tag, which some people use. I dunno
             if(tagname.toLowerCase() == 'displayname') {
@@ -430,19 +439,19 @@ export class ARMParser {
               extraData.os = 'Windows'          
             }  
             if(res.properties.osProfile.computerName) {
-              extraData.hostname = utils.encode( this._evalExpression(res.properties.osProfile.computerName) );
+              extraData.hostname = utils.encode( this.expParser.eval(res.properties.osProfile.computerName) );
             }                              
             if(res.properties.osProfile.adminUsername) {
-              extraData.user = utils.encode( this._evalExpression(res.properties.osProfile.adminUsername) ); 
+              extraData.user = utils.encode( this.expParser.eval(res.properties.osProfile.adminUsername) ); 
             }
             if(res.properties.hardwareProfile.vmSize) {
-              extraData.size = utils.encode( this._evalExpression(res.properties.hardwareProfile.vmSize) ); 
+              extraData.size = utils.encode( this.expParser.eval(res.properties.hardwareProfile.vmSize) ); 
             } 
             if(res.properties.storageProfile.imageReference) {
               extraData.image = "";
-              if(res.properties.storageProfile.imageReference.publisher) {extraData.image += this._evalExpression(res.properties.storageProfile.imageReference.publisher);} 
-              if(res.properties.storageProfile.imageReference.offer) {extraData.image += '/'+this._evalExpression(res.properties.storageProfile.imageReference.offer);} 
-              if(res.properties.storageProfile.imageReference.sku) {extraData.image += '/'+this._evalExpression(res.properties.storageProfile.imageReference.sku);} 
+              if(res.properties.storageProfile.imageReference.publisher) {extraData.image += this.expParser.eval(res.properties.storageProfile.imageReference.publisher);} 
+              if(res.properties.storageProfile.imageReference.offer) {extraData.image += '/' + this.expParser.eval(res.properties.storageProfile.imageReference.offer);} 
+              if(res.properties.storageProfile.imageReference.sku) {extraData.image += '/' + this.expParser.eval(res.properties.storageProfile.imageReference.sku);} 
             }                     
           } catch (ex) {
             console.log('ERROR! Error when parsing VM resource: ', res.name);
@@ -468,18 +477,18 @@ export class ARMParser {
           res.dependsOn.forEach((dep: string) => {
             
             // Most dependsOn are not static strings, they will be expressions
-            dep = this._evalExpression(dep, true);
+            dep = this.expParser.eval(dep, true);
             
             // Find resource by eval'ed dependsOn string
-            let depres = this._findResource(dep);
+            let depres = this.findResource(dep);
             // Then create a link between this resource and the found dependency 
-            if(depres) this._addLink(res, depres);
+            if(depres) this.addLink(res, depres);
           });          
         }
   
         // Now recurse into nested resources
         if(res.resources) {
-          await this._processResources(res.resources);
+          await this.processResources(res.resources);
         }        
       } catch (err) {
         this.error = err;  //`Unable to process ARM resources, template is probably invalid. ${ex}`
@@ -490,7 +499,7 @@ export class ARMParser {
   //
   // Create a link element between resources
   //
-  private _addLink(r1: any, r2: any) {
+  private addLink(r1: any, r2: any) {
     let edge = new CytoscapeNode('edges');
     edge.data = {
       id: `${r1.id}_${r2.id}`,
@@ -500,7 +509,7 @@ export class ARMParser {
     this.elements.push(edge);
   }
 
-  private async _parseLinkedOrNested(res: any, subTemplate: string): Promise<number> {   
+  private async parseLinkedOrNested(res: any, subTemplate: string): Promise<number> {   
     // If we've got some actual data, means we read the linked file somehow
     if(subTemplate) {
       let subParser = new ARMParser(this.iconBasePath, res.name, this.reporter, this.editor); 
@@ -536,266 +545,14 @@ export class ARMParser {
   }
 
   //
-  // Main ARM expression parser, attempts to evaluate and resolve ARM expressions into strings
-  //
-  private _evalExpression(exp: string, check: boolean = false): any {
-    // Precheck called on top level calls to _evalExpression
-    if(check) {
-      let match = exp.match(/^\[(.*)\]$/);
-      if(match) {
-        exp = match[1];
-      } else {
-        return exp
-      }
-    }
-
-    // Catch some rare errors where non-strings are parsed
-    if(typeof exp != "string")
-      return exp;
-
-    exp = exp.trim();
-    
-    // It looks like a function call with a property reference e.g foo().bar or foo()['bar']
-    let match = exp.match(/(\w+)\((.*)\)((?:\.|\[).*)/);
-    let funcProps = undefined;
-    if(match) {
-      let funcName = match[1];
-      let funcParams = match[2];
-      funcProps = match[3];     
-
-      // Catch some special cases, with referenced properties, e.g. resourceGroup().location
-      if(funcName == 'resourceGroup' && funcProps == '.id') return '{res-group-id}'; 
-      if(funcName == 'resourceGroup' && funcProps == '.location') return '{res-group-location}'; 
-      if(funcName == 'subscription' && funcProps == '.subscriptionid') return '{subscription-id}'; 
-      if(funcName == 'deployment' && funcProps == '.name') return '{deployment-name}'; 
-
-      if(funcName == 'variables') {
-        return this._funcVarParam(this.template.variables, this._evalExpression(funcParams), funcProps);
-      }     
-      if(funcName == 'parameters') {
-        return this._funcVarParam(this.template.parameters, this._evalExpression(funcParams), funcProps);
-      }           
-    }
-
-    // It looks like a 'plain' function call
-    match = exp.match(/(\w+)\((.*)\)/);
-    if(match) {
-      let funcName = match[1].toLowerCase();
-      let funcParams = match[2];
-      
-      if(funcName == 'variables') {
-        return this._funcVarParam(this.template.variables, this._evalExpression(funcParams), '');
-      }
-      if(funcName == 'uniquestring') {
-        return this._funcUniquestring(this._evalExpression(funcParams));
-      }   
-      if(funcName == 'concat') {
-        return this._funcConcat(funcParams, '');
-      }
-      if(funcName == 'uri') {
-        // Treat as concat
-        return this._funcConcat(funcParams, '');
-      }
-      if(funcName == 'parameters') {
-        return this._funcVarParam(this.template.parameters, this._evalExpression(funcParams), '');
-      }  
-      if(funcName == 'replace') {
-        return this._funcReplace(funcParams);
-      }      
-      if(funcName == 'tolower') {
-        return this._funcToLower(funcParams);
-      }        
-      if(funcName == 'toupper') {
-        return this._funcToUpper(funcParams);
-      } 
-      if(funcName == 'substring') {
-        return this._funcSubstring(funcParams);
-      }    
-      if(funcName == 'resourceid') {
-        // Treat resourceId as a concat operation with slashes 
-        let resid = this._funcConcat(funcParams, '/');
-        // clean up needed
-        resid = resid.replace(/^\//, '');
-        resid = resid.replace(/\/\//, '/');
-        return resid;
-      }    
-      if(funcName == 'copyIndex') {
-        return 0
-      }                 
-    }
-
-    // It looks like a string literal
-    match = exp.match(/^\'(.*)\'$/);
-    if(match) {
-      return match[1];
-    }
-
-    // It looks like a number literal
-    match = exp.match(/^(\d+)/);
-    if(match) {
-      return match[1].toString();
-    }
-
-    // Catch all, just return the expression, unparsed
-    return exp;
-  }
-
-  //
   // Locate a resource by resource id
   //
-  private _findResource(name: string) {
+  private findResource(name: string) {
     return this.template.resources.find((res: any) => {
       // Simple match on substring is possible after fully resolving names & types
       // Switched to endsWith rather than include, less generous but more correct
       return res.fqn.toLowerCase().endsWith(name.toLowerCase());
       //return res.fqn.toLowerCase().includes(name.toLowerCase());
     });
-  }
-
-  //
-  // Emulate the ARM function `variables()` and `parameters()` to reference template variables/parameters
-  // The only difference is the source 
-  //
-  private _funcVarParam(source: any, varName: string, propAccessor: string) {
-    // propAccessor is the . or [] part of the object accessor
-    // the [] notation requires some pre-processing for expressions e.g. foo[variable('bar')]
-    if(propAccessor && propAccessor.charAt(0) == '['
-       && !(propAccessor.charAt(1) >= '0' && propAccessor.charAt(1) <= '9')
-       && !(propAccessor.charAt(1) == "'")) {
-      // Evaluate propAccessor in case it includes an expression
-      let propAccessorResolved = this._evalExpression(propAccessor, false)
-      // If we get a string back it need's quoting, e.g. foo['baz']
-      if(typeof(propAccessorResolved) == 'string') {
-        propAccessorResolved = `'${propAccessorResolved}'`
-      }
-      // Otherwise it's hopefully a number 
-      propAccessor = `[${propAccessorResolved}]`;
-    }
-
-    if(!source) return "{undefined}";
-    let findKey = Object.keys(source).find(key => varName == key);
-    if(findKey) {
-      let val;
-      
-      // For parameters we access `defaultValue`
-      if(source == this.template.parameters) {
-        val = source[findKey].defaultValue;
-        // Without a defaultValue it is impossible to know what the parameters value could be!
-        // So a fall-back out is to return the param name inside {}
-        if(!val && val !== 0)
-          return `{${this._evalExpression(varName)}}`
-      } else {
-        // For variables we use the actual value
-        val = source[findKey];
-      }
-
-      // Variables can be JSON objects, MASSIVE SIGH LOOK AT THIS INSANITY
-      if(typeof(val) == 'object') {
-        if(!propAccessor) {
-          // We're dealing with an object and have no property accessor, nothing we can do
-          return `{${JSON.stringify(val)}}`
-        }
-        
-        // Hack to try to handle copyIndex, default to first item in array
-        propAccessor = propAccessor.replace('copyIndex()', '0');
-
-        // Use eval to access property, I'm not happy about it, but don't have a choice
-        try {
-          let evalResult = eval('val' + propAccessor);
-
-          if(typeof(evalResult) == 'undefined') {
-            console.log(`### ArmView: Warn! Your template contains invalid references: ${varName} -> ${propAccessor}`)
-            return "{undefined}";
-          }
-
-          if(typeof(evalResult) == 'string') {
-            // variable references values can be expressions too, so down the rabbit hole we go...
-            return this._evalExpression(evalResult, true);
-          }
-
-          if(typeof(evalResult) == 'object') {
-            // We got an object back, give up
-            return `{${JSON.stringify(evalResult)}}`
-          }
-        } catch(err) {
-          console.log(`### ArmView: Warn! Your template contains invalid references: ${varName} -> ${propAccessor}`)
-          return "{undefined}"
-        }
-      }
-
-      if(typeof(val) == 'string') {
-        // variable values can be expressions too, so down the rabbit hole we go...
-        return this._evalExpression(val, true);
-      }
-      
-      // Fall back
-      return val;
-    } else {
-      console.log(`### ArmView: Warn! Your template contains invalid references: ${varName} -> ${propAccessor}`)
-      return "{undefined}";
-    }
-  }
-
-  //
-  // Emulate the ARM function `uniqueString()` 
-  //
-  private _funcUniquestring(baseStr: string): string {
-    let hash = utils.hashCode(baseStr);
-    return Buffer.from(`${hash}`).toString('base64').substr(0, 14);
-  }
-
-  //
-  // Emulate the ARM function `concat()` 
-  //
-  private _funcConcat(funcParams: string, joinStr: string) {
-    let paramList = utils.parseParams(funcParams);
-
-    var res = "";
-    for(var p in paramList) {
-      let param = paramList[p];
-      try {
-        param = param.trim();
-      } catch(err) {}
-      res += joinStr + this._evalExpression(param)
-    }
-    return res;
-  }
-
-  //
-  // Emulate the ARM function `replace()` 
-  //
-  private _funcReplace(funcParams: string) {
-    let paramList = utils.parseParams(funcParams);
-    var input = this._evalExpression(paramList[0]);
-    var search = this._evalExpression(paramList[1]);
-    var replace = this._evalExpression(paramList[2]);
-    
-    return input.replace(search, replace);
-  } 
-  
-  //
-  // Emulate the ARM function `toLower()` 
-  //
-  private _funcToLower(funcParams: string) {
-    return this._evalExpression(funcParams).toLowerCase();
-  }
-
-  //
-  // Emulate the ARM function `toUpper()` 
-  //
-  private _funcToUpper(funcParams: string) {
-    return this._evalExpression(funcParams).toUpperCase();
-  }
-
-  //
-  // Emulate the ARM function `substring()` 
-  //
-  private _funcSubstring(funcParams: string) {
-    let paramList = utils.parseParams(funcParams);
-    var str = this._evalExpression(paramList[0]);
-    var start = this._evalExpression(paramList[1]);
-    var end = this._evalExpression(paramList[2]);
-    
-    return this._evalExpression(str).substring(start, end);
   }
 }

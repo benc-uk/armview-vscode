@@ -4,9 +4,9 @@
 
 This extension displays a graphical preview of Azure Resource Manager (ARM) templates. The view will show all resources with the official Azure icons and also linkage between the resources. Uses the [Cytoscape.js library](http://js.cytoscape.org/)
 
-You can drag and move icons as you wish, zoom in and out with the mouse wheel and drag the canvas to pan around. Clicking on a resource will show a small "infobox" with extra details
+You can drag and move icons as you wish, zoom in and out with the mouse wheel and drag the canvas to pan around. Clicking on a resource will show a small "infobox" with extra details. See [usage](#Usage) for more details and features.
 
-Extension as been tested successfully against all 890+ [Azure Quickstart Templates](https://github.com/Azure/azure-quickstart-templates) 😁
+Extension as been tested successfully against all 900+ [Azure Quickstart Templates](https://github.com/Azure/azure-quickstart-templates) 😁
 
 ![s1](assets/readme/screen1.png)
 

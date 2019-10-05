@@ -1,3 +1,9 @@
+//
+// arm-parser-types.ts - ARM Parser 
+// Type definitions, interfaces and basic data classes
+// Ben Coleman, 2019
+//
+
 export interface Template {
   $schema:    string
   parameters: Record<string, Parameter>
