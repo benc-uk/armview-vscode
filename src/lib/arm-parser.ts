@@ -461,7 +461,7 @@ export default class ARMParser {
               if(res.properties.storageProfile.imageReference.sku) {extraData.image += '/' + this.expParser.eval(res.properties.storageProfile.imageReference.sku);} 
             }                     
           } catch (ex) {
-            console.log('ERROR! Error when parsing VM resource: ', res.name);
+            console.log('### ArmView: Warn! Error when parsing VM resource details: ', res.name);
           }
         }      
 
