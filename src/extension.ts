@@ -6,7 +6,7 @@
 
 import * as vscode from 'vscode';
 import * as path from 'path';
-import ARMParser from './lib/arm-parser';
+import { ARMParser } from './lib/arm-parser';
 import TelemetryReporter from 'vscode-extension-telemetry';
 
 // Set up telemetry logging

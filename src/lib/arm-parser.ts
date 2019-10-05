@@ -7,17 +7,17 @@
 
 import * as utils from './utils';
 import * as path from 'path';
+import * as stripJsonComments from 'strip-json-comments';
 import axios from 'axios';
 import TelemetryReporter from 'vscode-extension-telemetry';
-import * as stripJsonComments from 'strip-json-comments';
-const stripBom = require('strip-bom');
-const jsonLint = require('jsonlint');
 import { TextEditor } from 'vscode';
+const jsonLint = require('jsonlint');
+import { Template, CytoscapeNode, Resource } from './arm-parser-types'
 
-class ARMParser {
-  template: any;
-  error: any;
-  elements: any[];
+export class ARMParser {
+  template: Template;
+  error: Error | undefined;
+  elements: CytoscapeNode[];
   iconBasePath: string;
   reporter: TelemetryReporter | undefined;
   editor: TextEditor | undefined;
@@ -27,8 +27,7 @@ class ARMParser {
   // Create a new ARM Parser
   //
   constructor(iconBasePath: string, name: string, reporter?: TelemetryReporter, editor?: TextEditor) {
-    this.template = null;
-    this.error = null;
+    this.template = {$schema: '', parameters: {}, variables: {}, resources: []};
     this.elements = [];
     this.iconBasePath = iconBasePath;
     this.reporter = reporter;
@@ -39,7 +38,7 @@ class ARMParser {
   //
   // Load and parse a ARM template from given string
   //
-  async parse(templateJSON: string, parameterJSON?: string): Promise<any[]> {
+  async parse(templateJSON: string, parameterJSON?: string): Promise<CytoscapeNode[]> {
     console.log(`### ArmView: Start parsing JSON template: ${this.name}`);
     this.elements = [];
 
@@ -83,8 +82,10 @@ class ARMParser {
   //
   private _parseJSON(content: string) {
     try {
-      // Strip out BOM characters for those mac owning weirdos
-      content = stripBom(content); 
+      // Strip out BOM characters for those mac owning weirdos, not sure this is needed
+      if (content.charCodeAt(0) === 0xFEFF) {
+        content = content.slice(1);
+      }
       
       // ARM templates do allow comments, but it's not part of the JSON spec 
       content = stripJsonComments(content); 
@@ -125,7 +126,7 @@ class ARMParser {
   //
   // Pre-parser function, does some work to make life easier for the main parser 
   //
-  private _preProcess(resources: any[], parentRes: any) {
+  private _preProcess(resources: Resource[], parentRes: any) {
     console.log(`### ArmView: Pre-process starting...`);
     resources.forEach(res => {
       try {
@@ -156,9 +157,11 @@ class ARMParser {
 
         // Resolve and eval sku object
         if(res.sku && typeof res.sku == "object") {
-          Object.keys(res.sku).forEach(propname => {
-            let propval = res.sku[propname].toString();
-            res.sku[propname] = this._evalExpression(propval, true);
+          Object.keys(res.sku).forEach(propName => {
+            if(res.sku) {
+              let propVal = res.sku[propName].toString();
+              res.sku[propName] = this._evalExpression(propVal, true);
+            }
           });
         }   
 
@@ -220,7 +223,7 @@ class ARMParser {
   //
   // Main function to parse a resource, this will recurse into nested resources
   //
-  private async _processResources(resources: any[]) {
+  private async _processResources(resources: Resource[]) {
     for(let res of resources) {
       try {
         let extraData: any;
@@ -385,13 +388,13 @@ class ARMParser {
         if(res.tags && typeof res.tags == "object") {
           Object.keys(res.tags).forEach(tagname => {
             let tagval = res.tags[tagname];
-            tagval = utils.encode(this._evalExpression(tagval));
+            //tagval = utils.encode(this._evalExpression(tagval));
+            // Some crazy people put expressions in their tag names, I mean really...
             tagname = utils.encode(this._evalExpression(tagname));
 
             // Handle special case for displayName tag, which some people use. I dunno
             if(tagname.toLowerCase() == 'displayname') {
-              // Don't used encoded value
-              res.name = res.tags[tagname];
+              res.name = tagval;
             }
 
             // Store tags in 'extra' node data
@@ -404,12 +407,14 @@ class ARMParser {
         // Process SKU
         if(res.sku && typeof res.sku == "object") {
           Object.keys(res.sku).forEach(skuname => {
-            let skuval = res.sku[skuname];
-            skuval = utils.encode(this._evalExpression(skuval));
-            skuname = utils.encode(this._evalExpression(skuname));
+            if(res.sku) {
+              let skuval = res.sku[skuname];
+              //skuval = utils.encode(this._evalExpression(skuval));
+              //skuname = utils.encode(this._evalExpression(skuname));
 
-            // Store SKU details in 'extra' node data
-            extraData['SKU ' + skuname] = skuval;  
+              // Store SKU details in 'extra' node data
+              extraData['SKU ' + skuname] = skuval;  
+            }
           });
         } else if(res.sku && typeof res.sku == "string") {
           extraData['sku'] = res.sku; 
@@ -445,20 +450,18 @@ class ARMParser {
         }      
 
         // Stick resource node in resulting elements list
-        let cytoNode = {
-          group: "nodes",
-          data: {
-            id: res.id,
-            name: utils.encode(res.name),
-            img: img,
-            kind: res.kind ? res.kind : '',
-            type: res.type,
-            label: label,
-            location: res.location ? utils.encode(res.location) : '',
-            extra: extraData
-          }
+        let cyNode = new CytoscapeNode('nodes');
+        cyNode.data = {
+          id: res.id,
+          name: utils.encode(res.name),
+          img: img,
+          kind: res.kind ? res.kind : '',
+          type: res.type,
+          label: label,
+          location: res.location ? utils.encode(res.location) : '',
+          extra: extraData
         }
-        this.elements.push(cytoNode);
+        this.elements.push(cyNode);
   
         // Serious business - find the dependencies between resources
         if(res.dependsOn) {
@@ -488,14 +491,13 @@ class ARMParser {
   // Create a link element between resources
   //
   private _addLink(r1: any, r2: any) {
-    this.elements.push({
-      group: "edges",
-      data: {
-        id: `${r1.id}_${r2.id}`,
-        source: r1.id,
-        target: r2.id
-      }      
-    })
+    let edge = new CytoscapeNode('edges');
+    edge.data = {
+      id: `${r1.id}_${r2.id}`,
+      source: r1.id,
+      target: r2.id
+    } 
+    this.elements.push(edge);
   }
 
   private async _parseLinkedOrNested(res: any, subTemplate: string): Promise<number> {   
@@ -511,13 +513,15 @@ class ARMParser {
         }
         
         for(let subres of linkRes) {
-          // !IMPORTANT! Only set the parent if it's not already set
-          // Otherwise we overwrite the value when working with multiple levels deep of linkage
-          if(!subres.data.parent)
+          if(subres) {
+            // !IMPORTANT! Only set the parent if it's not already set
+            // Otherwise we overwrite the value when working with multiple levels deep of linkage
+            if(subres.data && !subres.data.parent)
             subres.data.parent = res.id;
 
-          // Push linked resources into the main list
-          this.elements.push(subres);
+            // Push linked resources into the main list
+            this.elements.push(subres);
+          }
         }  
 
         return linkRes.length
@@ -795,5 +799,3 @@ class ARMParser {
     return this._evalExpression(str).substring(start, end);
   }
 }
-
-export default ARMParser;
