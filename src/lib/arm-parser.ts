@@ -252,7 +252,14 @@ export default class ARMParser {
             img = 'microsoft.apimanagement/default.svg';
           } else {
             // Send telemetry on missing icons, this helps me narrow down which ones to add in the future
-            if(this.reporter) this.reporter.sendTelemetryEvent('missingIcon', { 'resourceType': res.type, 'resourceFQN': res.fqn });
+            let fileHash = ""
+            if(this.editor) {
+              fileHash = this.editor.document.fileName;
+              fileHash = utils.hashCode(this.editor.document.fileName);
+            }
+            // Send resource type, FQN and a hashed/obscured version of the filename
+            if(this.reporter) this.reporter.sendTelemetryEvent('missingIcon', { 'resourceType': res.type, 'resourceFQN': res.fqn, 'fileHash': fileHash });
+
             // Use default icon as nothing else found
             img = 'default.svg';
           }
