@@ -1,0 +1,43 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "webParam": {
+      "defaultValue": "Web5",
+      "type": "string"
+    },
+		"testString": {
+			"type": "string",
+			"defaultValue": "one two three"
+		}    
+  },
+  "variables": {
+    "prefix": "zone"
+  },
+  "resources": [
+    {
+      "name": "[concat(variables('prefix'), '-', toLower(concat('FOO_', parameters('webParam'))))]",
+      "type": "microsoft.network/dnszones"
+    },
+    {
+      "name": "[uri('http://example.com', 'ben.js')]",
+      "type": "microsoft.network/dnszones"
+    },
+    {
+      "name": "[replace('this is ok ZIS', 'is', 'at')]",
+      "type": "microsoft.network/dnszones"
+    },
+    {
+      "name": "[toUpper(substring(parameters('testString'), 4, 3))]",
+      "type": "microsoft.network/dnszones"
+    },
+    {
+      "name": "[guid('foo')]",
+      "type": "microsoft.network/dnszones"
+    },
+    {
+      "name": "[uniqueString(deployment().name)]",
+      "type": "microsoft.network/dnszones"
+    }          
+  ]
+}

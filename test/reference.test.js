@@ -50,9 +50,12 @@ describe('Test: vars-params.json', function() {
   it('Parse file', async function() {
     res = await loadTemplate("test/ref/vars-params.json");
   });
-  it('Validate nodes & edges', async function() {
-    expect(res).to.have.lengthOf(8);
 
+  it('Validate node count', async function() {
+    expect(res).to.have.lengthOf(8);
+  });
+
+  it('Validate var & param substitution', async function() {
     expect(res).to.be.an("array").to.containSubset([{data:{name:"Lou%20Reed"}}]);
     expect(res).to.be.an("array").to.containSubset([{data:{name:"Waters"}}]);
     expect(res).to.be.an("array").to.containSubset([{data:{name:"Zappa"}}]);
@@ -73,10 +76,35 @@ describe('Test: linked.json', function() {
     res = await loadTemplate("test/ref/linked.json");
   });
   
-  it('Validate nodes & edges', async function() {
+  it('Validate node count', async function() {
     expect(res).to.have.lengthOf(8);
-    expect(res).to.be.an("array").to.containSubset([{data:{name:"aks101cluster"}}]);
+  });
 
+  it('Validate linked template', async function() {   
     // !NOTE! Without a VS Code instance/workspace we can't fully test linked template resolution
+    expect(res).to.be.an("array").to.containSubset([{data:{name:"aks101cluster"}}]);
+  })
+});
+
+//
+//
+//
+describe('Test: expressions.json', function() {
+  let res;
+  it('Parse file', async function() {
+    res = await loadTemplate("test/ref/expressions.json");
+  });
+  
+  it('Validate node count', async function() {
+    expect(res).to.have.lengthOf(6);
+  });
+
+  it('Validate expression evaluation', async function() {    
+    expect(res).to.be.an("array").to.containSubset([{data:{name:"TWO"}}]);
+    expect(res).to.be.an("array").to.containSubset([{data:{name:"that%20at%20ok%20ZIS"}}]);
+    expect(res).to.be.an("array").to.containSubset([{data:{name:"http%3A%2F%2Fexample.com%2Fben.js"}}]);
+    expect(res).to.be.an("array").to.containSubset([{data:{name:"LTM4NjUwNDUwNw"}}]);
+    expect(res).to.be.an("array").to.containSubset([{data:{name:"977d95b7-70c9-5b8a-9a61-ebc22fb8167f"}}]);
+    expect(res).to.be.an("array").to.containSubset([{data:{name:"zone-foo_web5"}}]);
   })
 });
