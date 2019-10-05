@@ -59,7 +59,8 @@ export default class ARMExpressionParser {
       }           
     }
 
-    // It looks like a 'plain' function call
+    // It looks like a 'plain' function call without . something after it
+    // For historic reasons we treat these separate and I don't want to mess with it, as it works
     match = exp.match(/(\w+)\((.*)\)/);
     if(match) {
       let funcName = match[1].toLowerCase();
@@ -109,7 +110,7 @@ export default class ARMExpressionParser {
       }                     
     }
 
-    // It looks like a string literal
+    // It looks like a string literal in single quotes
     match = exp.match(/^\'(.*)\'$/);
     if(match) {
       return match[1];

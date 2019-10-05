@@ -1,8 +1,10 @@
 ## 0.3.1
 - Export as PNG
 - Theme support (not fully implemented, only one theme currently 'original')
-- Improved colouring on links and linked deployments
-- Bug fixes on linked templates, quelle suprise
+- VS Code theme colouring on links between nodes and box around linked deployments
+- Fixes to expression evaluation (uri, replace) and guid() function added
+- Yet more fixes on linked templates
+- Large scale internal refactoring for better code structure & TypeScript
 
 
 ## 0.3.0
