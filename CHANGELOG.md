@@ -1,3 +1,7 @@
+## 0.3.2
+- Caching of external URLs for linked templates
+
+
 ## 0.3.1
 - Export as PNG
 - Theme support (not fully implemented, only one theme currently 'original')

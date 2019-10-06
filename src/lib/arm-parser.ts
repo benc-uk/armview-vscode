@@ -314,15 +314,16 @@ export default class ARMParser {
               cacheResult = this.cache.get<string>(linkUri);
             }
             if (cacheResult == undefined) {
-              // If we're REALLY lucky it will be an accessible public URL
+              // With some luck it will be an accessible directly via public URL
               let result = await axios({ url: linkUri, responseType: 'text' })
 
-              // Only required due to a bug in axios https://github.com/axios/axios/issues/907
+              // Required due to a bug in axios https://github.com/axios/axios/issues/907
+              // Despite asking for a text result, axios ignores that setting!
               subTemplate = JSON.stringify(result.data);
 
               // Ok, well this is kinda weird but sometimes you get a 200 and page back even on invalid URLs
               // This is a primitive check we've got something JSON-ish
-              // We can't use content type as we've told Axios to return plain/text
+              // We can't use content-type as axios messes that up
               if(subTemplate.charAt(0) != '{') throw new Error("Returned data wasn't JSON")
               
               console.log("### ArmView: Linked template was fetched from external URL");
