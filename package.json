@@ -2,7 +2,7 @@
 	"name": "armview",
 	"displayName": "ARM Template Viewer",
 	"description": "Graphically display ARM templates in an interactive map view",
-	"version": "0.3.1",
+	"version": "0.3.2",
 	"icon": "assets/img/icons/main.png",
 	"publisher": "bencoleman",
 	"author": {
@@ -58,7 +58,12 @@
 					],
 					"default": "original",
 					"description": "Icon theme to use when displaying resource"
-				}
+				},
+				"armView.linkedUrlCacheTime": {
+					"type": "integer",
+					"default": 120,
+					"description": "Number of seconds to cache any external URLs when fetching linked templates"
+				}									
 			}
 		},
 		"menus": {
@@ -104,6 +109,7 @@
 	"dependencies": {
 		"axios": "^0.19.0",
 		"jsonlint": "^1.6.3",
+		"node-cache": "^4.2.1",
 		"strip-bom": "^3.0.0",
 		"strip-json-comments": "^3.0.1",
 		"uuid": "^3.3.3",
