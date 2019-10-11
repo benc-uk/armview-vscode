@@ -5,15 +5,17 @@
 // Modified & updated for VS Code extension. Converted (crudely) to TypeScript, Oct 2019
 //
 
-import * as utils from './utils';
+const jsonLint = require('jsonlint');
 import * as path from 'path';
 import * as stripJsonComments from 'strip-json-comments';
 import axios from 'axios';
 import TelemetryReporter from 'vscode-extension-telemetry';
 import { TextEditor } from 'vscode';
-const jsonLint = require('jsonlint');
-import { Template, CytoscapeNode, Resource } from './arm-parser-types'
+import { NodeCache } from 'node-cache';
+
+import * as utils from './utils';
 import ARMExpressionParser from './arm-exp-parser'
+import { Template, CytoscapeNode, Resource } from './arm-parser-types'
 
 export default class ARMParser {
   template: Template;
@@ -24,11 +26,12 @@ export default class ARMParser {
   reporter: TelemetryReporter | undefined;
   editor: TextEditor | undefined;
   name: string;
+  cache: NodeCache | undefined;
   
   //
   // Create a new ARM Parser
   //
-  constructor(iconBasePath: string, name: string, reporter?: TelemetryReporter, editor?: TextEditor) {
+  constructor(iconBasePath: string, name: string, reporter?: TelemetryReporter, editor?: TextEditor, cache?: NodeCache) {
     // Both of these are overwritten when parse() is called
     this.template = {$schema: '', parameters: {}, variables: {}, resources: []};
     this.expParser = new ARMExpressionParser(this.template);
@@ -38,6 +41,9 @@ export default class ARMParser {
     this.reporter = reporter;
     this.editor = editor;
     this.name = name;
+
+    // Cache only used for external URLs of linked templates
+    this.cache = cache;
   }
 
   //
@@ -151,7 +157,7 @@ export default class ARMParser {
           res.kind = this.expParser.eval(res.kind, true);
         }
 
-        // Removed, I don't think this is valid in a template
+        // Removed, I don't think this is ever valid in any template
         // if(res.tags && typeof res.tags == "string") {
         //   res.tags = this.expParser.eval(res.tags, true);
         // }     
@@ -301,20 +307,37 @@ export default class ARMParser {
           // OK let's try to handle linked templates shall we? O_O
           console.log("### ArmView: Processing linked template: " + linkUri);
            
-          let subTemplate = "";
+          let subTemplate: string = "";
+          var cacheResult = undefined;
           try {
-            // If we're REALLY lucky it will be an accessible public URL
-            let result = await axios({ url: linkUri, responseType: 'text' })
+            if(this.cache) {
+              cacheResult = this.cache.get<string>(linkUri);
+            }
+            if (cacheResult == undefined) {
+              // With some luck it will be an accessible directly via public URL
+              let result = await axios({ url: linkUri, responseType: 'text' })
 
-            // Only required due to a bug in axios https://github.com/axios/axios/issues/907
-            subTemplate = JSON.stringify(result.data);
+              // Required due to a bug in axios https://github.com/axios/axios/issues/907
+              // Despite asking for a text result, axios ignores that setting!
+              subTemplate = JSON.stringify(result.data);
 
-            // Ok, well this is kinda weird but sometimes you get a 200 and page back no matter what URL
-            // This is a primitive check we've got something JSON-ish
-            // We can't use content type as we've told Axios to return plain/text
-            if(subTemplate.charAt(0) != '{') throw new Error("Returned data wasn't JSON")
-            
-            console.log("### ArmView: Linked template was fetched from external URL");
+              // Ok, well this is kinda weird but sometimes you get a 200 and page back even on invalid URLs
+              // This is a primitive check we've got something JSON-ish
+              // We can't use content-type as axios messes that up
+              if(subTemplate.charAt(0) != '{') throw new Error("Returned data wasn't JSON")
+              
+              console.log("### ArmView: Linked template was fetched from external URL");
+              
+              // Cache results
+              if(this.cache) {
+                this.cache.set(linkUri, subTemplate);
+                console.log("### ArmView: Cache available. Stored external URL result in cache");
+              }
+            } else {
+              console.log("### ArmView: Cache hit, cached results used");
+              subTemplate = cacheResult;
+            }
+
           } catch(err) {
             // That failed, in most cases we'll end up here 
             console.log(`### ArmView: '${err}' URL not available, will search filesystem`);
@@ -519,7 +542,7 @@ export default class ARMParser {
   private async parseLinkedOrNested(res: any, subTemplate: string): Promise<number> {   
     // If we've got some actual data, means we read the linked file somehow
     if(subTemplate) {
-      let subParser = new ARMParser(this.iconBasePath, res.name, this.reporter, this.editor); 
+      let subParser = new ARMParser(this.iconBasePath, res.name, this.reporter, this.editor, this.cache); 
       try {
         let linkRes = await subParser.parse(subTemplate);
         

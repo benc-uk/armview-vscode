@@ -8,6 +8,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import ARMParser from './lib/arm-parser';
 import TelemetryReporter from 'vscode-extension-telemetry';
+import * as NodeCache from 'node-cache';
 
 // Set up telemetry logging
 const packageJson = require('../package.json');
@@ -23,6 +24,7 @@ var editor: vscode.TextEditor;
 var paramFileContent: string;
 var filters: string;
 var reporter: TelemetryReporter;
+var cache: NodeCache;
 
 // Used to buffer/delay updates when typing
 var refreshedTime: number = Date.now();
@@ -33,6 +35,8 @@ var typingTimeout: NodeJS.Timeout | undefined = undefined;
 //
 export function activate(context: vscode.ExtensionContext) {
 	extensionPath = context.extensionPath;
+
+
 	
   context.subscriptions.push(
     vscode.commands.registerCommand('armView.start', () => {
@@ -54,7 +58,11 @@ export function activate(context: vscode.ExtensionContext) {
 
 			themeName = vscode.workspace.getConfiguration('armView').get('iconTheme', 'original');
 			console.log(`### ArmView: Activating ${extensionPath} with theme ${themeName}`);
-		
+
+			let cacheTime = vscode.workspace.getConfiguration('armView').get<number>('linkedUrlCacheTime', 120);
+			
+			cache = new NodeCache({ stdTTL: cacheTime })
+
 			if(panel) {
 				// If we already have a panel, show it
 				panel.reveal();
@@ -233,10 +241,13 @@ async function refreshView() {
 		
 		// Create a new ARM parser, giving icon prefix based on theme, and name it "main"
 		// Additionally passing reporter and editor enables telemetry and linked template discovery in VS Code workspace
-		var parser = new ARMParser(`${extensionPath}/assets/img/azure/${themeName}`, "main", reporter, editor);    
+		var parser = new ARMParser(`${extensionPath}/assets/img/azure/${themeName}`, "main", reporter, editor, cache);    
 		
 		try {
+			let start = Date.now();
 			let result = await parser.parse(templateJSON, paramFileContent);			
+			console.log(`### ArmView: Parsing took ${Date.now() - start} ms`);
+
 			reporter.sendTelemetryEvent('parsedOK', {'nodeCount': result.length.toString(), 'filename': editor.document.fileName});
 			panel.webview.postMessage({ command: 'newData', payload: result });
 			panel.webview.postMessage({ command: 'resCount', payload: result.length.toString() });
@@ -259,11 +270,17 @@ function getWebviewContent() {
 	let wsname: string = vscode.workspace.name || "unknown";
 	reporter.sendTelemetryEvent('activated', {'workspace': wsname});
 
+	// Just in case, shouldn't happen
 	if(!panel)
 		return "";
 	
-	const assetsPath = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets')));
-	const iconThemeBase = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'img', 'azure', themeName))).toString();
+	// !! TEMPORARY WORKAROUND !!
+	// While loading resources is broken in remote (WSL/SSH) VS Code session, this is a horrible band-aid fix
+	// See this issue https://github.com/microsoft/vscode-remote-release/issues/1643 
+	const assetsPath = `https://armview.blob.core.windows.net/assets`;
+	//panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets')));
+	const iconThemeBase = `https://armview.blob.core.windows.net/assets/img/azure/${themeName}`;
+	//panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'img', 'azure', themeName))).toString();
 
 	return `
 <!DOCTYPE html>
