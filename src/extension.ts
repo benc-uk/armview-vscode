@@ -270,11 +270,17 @@ function getWebviewContent() {
 	let wsname: string = vscode.workspace.name || "unknown";
 	reporter.sendTelemetryEvent('activated', {'workspace': wsname});
 
+	// Just in case, shouldn't happen
 	if(!panel)
 		return "";
 	
-	const assetsPath = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets')));
-	const iconThemeBase = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'img', 'azure', themeName))).toString();
+	// !! TEMPORARY WORKAROUND !!
+	// While loading resources is broken in remote (WSL/SSH) VS Code session, this is a horrible band-aid fix
+	// See this issue https://github.com/microsoft/vscode-remote-release/issues/1643 
+	const assetsPath = `https://armview.blob.core.windows.net/assets`;
+	//panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets')));
+	const iconThemeBase = `https://armview.blob.core.windows.net/assets/img/azure/${themeName}`;
+	//panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'img', 'azure', themeName))).toString();
 
 	return `
 <!DOCTYPE html>

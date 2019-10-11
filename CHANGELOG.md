@@ -1,5 +1,6 @@
 ## 0.3.2
-- Caching of external URLs for linked templates
+- Temporary workaround while for webview resources are broken in a remote VS Code session. Awaiting fix from VS Code teams
+- Caching of external URLs for linked templates, large performance boost.
 
 
 ## 0.3.1
