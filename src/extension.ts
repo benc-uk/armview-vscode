@@ -274,13 +274,8 @@ function getWebviewContent() {
 	if(!panel)
 		return "";
 	
-	// !! TEMPORARY WORKAROUND !!
-	// While loading resources is broken in remote (WSL/SSH) VS Code session, this is a horrible band-aid fix
-	// See this issue https://github.com/microsoft/vscode-remote-release/issues/1643 
-	const assetsPath = `https://armview.blob.core.windows.net/assets`;
-	//panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets')));
-	const iconThemeBase = `https://armview.blob.core.windows.net/assets/img/azure/${themeName}`;
-	//panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'img', 'azure', themeName))).toString();
+	const assetsPath = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets')));
+	const iconThemeBase = panel.webview.asWebviewUri(vscode.Uri.file(path.join(extensionPath, 'assets', 'img', 'azure', themeName))).toString();
 
 	return `
 <!DOCTYPE html>
@@ -294,7 +289,6 @@ function getWebviewContent() {
 	<script src="${assetsPath}/js/vendor/cytoscape-snap-to-grid.js"></script>
 
 	<script src="${assetsPath}/js/main.js"></script>
-
 	<link href="${assetsPath}/css/main.css" rel="stylesheet" type="text/css">
 
 	<title>ARM Viewer</title>
