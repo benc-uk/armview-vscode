@@ -178,7 +178,7 @@ function reLayout(mode, animate) {
 
   // Bounding box for groups
   cy.style().selector(':parent').style({
-    'background-image': null,
+    'background-image': 'none',
     'label': node => { return getLabel(node) }, //decodeURIComponent(node.data(labelField)) },
     'border-width': '4',
     'border-color': borderColor,
