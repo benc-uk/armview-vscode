@@ -8,7 +8,7 @@
 const jsonLint = require('jsonlint');
 import * as path from 'path';
 import * as stripJsonComments from 'strip-json-comments';
-import axios from 'axios';
+import 'isomorphic-fetch';
 import TelemetryReporter from 'vscode-extension-telemetry';
 import { TextEditor } from 'vscode';
 import { NodeCache } from 'node-cache';
@@ -315,16 +315,22 @@ export default class ARMParser {
             }
             if (cacheResult == undefined) {
               // With some luck it will be an accessible directly via public URL
-              let result = await axios({ url: linkUri, responseType: 'text' })
+              
+              // Use the isomorphic fetch to get the content of the URL, (Note. was using axios but that had bugs)
+              // As fetch has no timeout we use a wrapper function and a 5sec timeout
+              let fetchResult = await utils.timeoutPromise(5000, fetch(linkUri), "HTTP network timeout");
+              if (!(fetchResult.status >= 200 && fetchResult.status < 300)) {
+                throw new Error(`Fetch failed, status code: ${fetchResult.status}`);
+              }
+              
+              // Traps those cases where a 200 + HTML page masks an error or 404
+              let contentType = fetchResult.headers.get("Content-Type");
+              if(contentType && contentType.includes('text/html')) {
+                throw new Error("Returned data wasn't JSON!");
+              }
 
-              // Required due to a bug in axios https://github.com/axios/axios/issues/907
-              // Despite asking for a text result, axios ignores that setting!
-              subTemplate = JSON.stringify(result.data);
-
-              // Ok, well this is kinda weird but sometimes you get a 200 and page back even on invalid URLs
-              // This is a primitive check we've got something JSON-ish
-              // We can't use content-type as axios messes that up
-              if(subTemplate.charAt(0) != '{') throw new Error("Returned data wasn't JSON")
+              // Get the plain text body, don't need it in JSON
+              subTemplate = await fetchResult.text();
               
               console.log("### ArmView: Linked template was fetched from external URL");
               
@@ -341,19 +347,19 @@ export default class ARMParser {
           } catch(err) {
             // That failed, in most cases we'll end up here 
             console.log(`### ArmView: '${err}' URL not available, will search filesystem`);
-            subTemplate = ""; // !IMPORTANT The above step might have failed but set subTemplate to shite
+            subTemplate = ""; // !IMPORTANT The above step might have failed but set subTemplate to invalid 
 
             // This crazy code tries to search the loaded workspace for the file, two different ways
             if(this.editor) {
               // Why do we do this? It lets us use this class without VS Code
-              let vscode = await import('vscode'); // Voodoo argh! 
+              let vscode = await import('vscode'); // await on import! Voodoo!
 
               // File name only of linked template, we'll need this a LOT
               let fileName = path.basename(linkUri);
 
-              // Try to guess directory it is in (don't worry if it's very wrong, it might be)
+              // Try to guess directory it is in (don't worry if it's wrong, it might be)
               let linkParts = linkUri.split('/');
-              let fileParentDir = linkParts[linkParts.length - 2]; 
+              let fileParentDir = linkParts[linkParts.length - 2];
                            
               // Try loading the from the workspace - assume file is in `fileParentDir` sub-folder
               // Most people store templates in a sub-folder and that sub-folder is included in the URL
@@ -365,8 +371,8 @@ export default class ARMParser {
                 
                 // Let's give it a try and see if it's there and loads
                 try {
-                  let fileContent = await vscode.workspace.fs.readFile(vscode.Uri.parse(`${wsPath}/${fileParentDir}/${fileName}`))
-                  subTemplate = fileContent.toString()
+                  let fileContent = await vscode.workspace.fs.readFile(vscode.Uri.parse(`${wsPath}/${fileParentDir}/${fileName}`));
+                  subTemplate = fileContent.toString();
                 } catch(err) {
                   console.log(`### ArmView: failed to load ${filePath}`);
                 }

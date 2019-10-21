@@ -27,3 +27,30 @@ export function encode(str: string) {
   temp = temp.replace(/'/g, '%27');
   return temp;
 }
+
+//
+// Stolen from https://github.com/github/fetch/issues/175
+// And TypeScript-ified by me
+//
+export function timeoutPromise<T>(ms: number, promise: Promise<T>, msg?: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    let timeoutId: NodeJS.Timeout | undefined = setTimeout(() => {
+      timeoutId = undefined;
+      reject(new Error(msg || "Promise timeout"))
+    }, ms);
+    promise.then(
+      (res: T) => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          resolve(res);
+        }
+      },
+      (err: any) => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          reject(err);
+        }
+      }
+    );
+  })
+}
