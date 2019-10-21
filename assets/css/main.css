@@ -1,5 +1,6 @@
 body{
   overflow-x: hidden;
+  height: 100%;
 }
 
 #mainview {
@@ -37,7 +38,7 @@ body{
   width: 97%;
   display: block;
   bottom: 4px;
-  position: fixed;
+  position: absolute;
   z-index: 500;
   color: var(--vscode-sideBarSectionHeader-foreground);
   background-color: var(--vscode-sideBarSectionHeader-background);
