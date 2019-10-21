@@ -75,6 +75,12 @@ button:hover {
   background-color: var(--vscode-gitDecoration-addedResourceForeground);
 }
 
+@media only screen and (max-width: 750px) {
+  .lab {
+    display: none;
+  }
+}
+
 .italic {
   font-style: italic;
 }

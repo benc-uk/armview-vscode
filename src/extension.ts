@@ -300,19 +300,19 @@ function getWebviewContent() {
 	</div>
 
 	<div id="buttons">
-		<button onclick="toggleLabels()"><img src="${assetsPath}/img/toolbar/labels.svg">&nbsp; Labels</button>
-		<button onclick="cy.fit()"><img src="${assetsPath}/img/toolbar/fit.svg">&nbsp; Re-fit</button>
-		<button onclick="toggleSnap()" id="snapbut"><img src="${assetsPath}/img/toolbar/snap.svg">&nbsp; Snap</button>
-		Layout:
-		<button onclick="reLayout('breadthfirst', true)"><img src="${assetsPath}/img/toolbar/tree.svg"></button>
-		<button onclick="reLayout('grid', true)"><img src="${assetsPath}/img/toolbar/grid.svg"></button>
+		<button onclick="toggleLabels()" title="Toggle Labels"><img src="${assetsPath}/img/toolbar/labels.svg"><span class="lab">&nbsp; Labels</span></button>
+		<button onclick="cy.fit()" title="Zoom to fit"><img src="${assetsPath}/img/toolbar/fit.svg"><span class="lab">&nbsp; Re-fit</span></button>
+		<button onclick="toggleSnap()" id="snapbut" title="Toggle snap to grid"><img src="${assetsPath}/img/toolbar/snap.svg"><span class="lab">&nbsp; Snap</span></button>
+		<span class="lab">Layout:</span>
+		<button onclick="reLayout('breadthfirst', true)" title="Relayout as tree"><img src="${assetsPath}/img/toolbar/tree.svg"></button>
+		<button onclick="reLayout('grid', true)" title="Relayout as grid"><img src="${assetsPath}/img/toolbar/grid.svg"></button>
 		<!--button onclick="reLayout('cose', true)"><img src="${assetsPath}/img/toolbar/cose.svg"></button-->
 		&nbsp;&nbsp;	
-		<button onclick="sendMessage('paramsClicked')"><img src="${assetsPath}/img/toolbar/params.svg">&nbsp; Params</button>
-		<button onclick="sendMessage('filtersClicked')"><img src="${assetsPath}/img/toolbar/filter.svg">&nbsp; Filter</button>
+		<button onclick="sendMessage('paramsClicked')" title="Apply parameters file"><img src="${assetsPath}/img/toolbar/params.svg"><span class="lab">&nbsp; Params</span></button>
+		<button onclick="sendMessage('filtersClicked')" title="Filter out resource types"><img src="${assetsPath}/img/toolbar/filter.svg"><span class="lab">&nbsp; Filter</span></button>
 		&nbsp;&nbsp;
-		<button onclick="sendMessage('initialized')"><img src="${assetsPath}/img/toolbar/reload.svg">&nbsp; Reload</button>
-		<button onclick="exportPNG()"><img src="${assetsPath}/img/toolbar/export.svg">&nbsp; Export</button>
+		<button onclick="sendMessage('initialized')" title="Reload/reset"><img src="${assetsPath}/img/toolbar/reload.svg"><span class="lab">&nbsp; Reload</span></button>
+		<button onclick="exportPNG()" title="Export view as PNG"><img src="${assetsPath}/img/toolbar/export.svg"><span class="lab">&nbsp; Export</span></button>
 	</div>
 
 	<div class="loader"></div>

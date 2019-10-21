@@ -1,3 +1,8 @@
+## 0.3.4
+- Responsive toolbar on narrow view
+- Better fetching of external linked templates
+
+
 ## 0.3.3
 - Removed workaround for webview resources, root cause was fixed in VS Code v1.39.2
 
