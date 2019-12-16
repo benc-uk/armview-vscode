@@ -19,7 +19,7 @@ export function hashCode(str: string): any {
     hash |= 0; // Convert to 32bit integer
   }
   return hash;
-};
+}
 
 // Custom string encoder which also encodes single quotes
 export function encode(str: string) {
@@ -36,7 +36,7 @@ export function timeoutPromise<T>(ms: number, promise: Promise<T>, msg?: string)
   return new Promise((resolve, reject) => {
     let timeoutId: NodeJS.Timeout | undefined = setTimeout(() => {
       timeoutId = undefined;
-      reject(new Error(msg || "Promise timeout"))
+      reject(new Error(msg || "Promise timeout"));
     }, ms);
     promise.then(
       (res: T) => {
@@ -52,5 +52,5 @@ export function timeoutPromise<T>(ms: number, promise: Promise<T>, msg?: string)
         }
       }
     );
-  })
+  });
 }

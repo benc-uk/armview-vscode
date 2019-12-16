@@ -14,8 +14,8 @@ import { TextEditor } from 'vscode';
 import { NodeCache } from 'node-cache';
 
 import * as utils from './utils';
-import ARMExpressionParser from './arm-exp-parser'
-import { Template, CytoscapeNode, Resource } from './arm-parser-types'
+import ARMExpressionParser from './arm-exp-parser';
+import { Template, CytoscapeNode, Resource } from './arm-parser-types';
 
 export default class ARMParser {
   template: Template;
@@ -68,7 +68,7 @@ export default class ARMParser {
     }
 
     // From here, we're pretty sure we're dealing with a legit and valid ARM template
-    this.expParser = new ARMExpressionParser(this.template)
+    this.expParser = new ARMExpressionParser(this.template);
         
     // New first pass, apply supplied parameters if any
     if(parameterJSON) {
@@ -132,7 +132,7 @@ export default class ARMParser {
       // Switched to jsonlint for more meaningful error messages
       return jsonLint.parse(content);
     } catch(err) {
-      err.message = "File is not valid JSON, please correct the error(s) below\n\n" + err.message
+      err.message = "File is not valid JSON, please correct the error(s) below\n\n" + err.message;
       throw err;
     }
   }
@@ -192,7 +192,7 @@ export default class ARMParser {
         
         // Recurse into nested resources
         if(res.resources) {
-          this.preProcess(res.resources, res)
+          this.preProcess(res.resources, res);
         }
       } catch (err) {
         this.error = err; //`Unable to pre-process ARM resources, template is probably invalid. ${ex}`
@@ -242,14 +242,14 @@ export default class ARMParser {
     for(let res of resources) {
       try {
         let extraData: any;
-        extraData = {}
+        extraData = {};
   
         // Label is the last part of the resource type
         let label = res.type.replace(/^.*\//i, '');
   
         // Workout which icon image to use, no way to catch missing images client side so we do it here
         let img = 'default.svg';
-        let iconExists = require('fs').existsSync(path.join(this.iconBasePath, `/${res.type}.svg`))
+        let iconExists = require('fs').existsSync(path.join(this.iconBasePath, `/${res.type}.svg`));
         if(iconExists) {
           img = `${res.type}.svg`;
         } else {
@@ -258,7 +258,7 @@ export default class ARMParser {
             img = 'microsoft.apimanagement/default.svg';
           } else {
             // Send telemetry on missing icons, this helps me narrow down which ones to add in the future
-            let fileHash = ""
+            let fileHash = "";
             if(this.editor) {
               fileHash = this.editor.document.fileName;
               fileHash = utils.hashCode(this.editor.document.fileName);
@@ -300,7 +300,7 @@ export default class ARMParser {
           // Strip off everything weird after file extension, i.e. after any ? or { characters we find
           let match = linkUri.match(/(.*?\.\w*?)($|\?|{)/);
           if(match) {
-            linkUri = match[1]
+            linkUri = match[1];
           }
           extraData['template-url'] = linkUri;
 
@@ -391,11 +391,11 @@ export default class ARMParser {
                 // Try to run the search
                 let searchResult;
                 try {
-                  searchResult = await vscode.workspace.findFiles(search)
+                  searchResult = await vscode.workspace.findFiles(search);
 
                   if(searchResult && searchResult.length > 0) {
                     console.log(`### ArmView: Found & using file: ${searchResult[0]}`);
-                    let fileContent = await vscode.workspace.fs.readFile(searchResult[0])
+                    let fileContent = await vscode.workspace.fs.readFile(searchResult[0]);
                     subTemplate = fileContent.toString();
                   }
                 } catch(err) {
@@ -407,7 +407,7 @@ export default class ARMParser {
 
           // If we have some data in subTemplate we were successful somehow reading the linked template!         
           if(subTemplate) {
-            linkedNodeCount = await this.parseLinkedOrNested(res, subTemplate)
+            linkedNodeCount = await this.parseLinkedOrNested(res, subTemplate);
           } else {
             console.log("### ArmView: Warn! Unable to locate linked template");
           }
@@ -418,7 +418,7 @@ export default class ARMParser {
           let subTemplate;
           try {
             console.log("### ArmView: Processing nested template in: "+res.name);
-            subTemplate = JSON.stringify(res.properties.template)
+            subTemplate = JSON.stringify(res.properties.template);
           } catch(err) {}
 
           // If we have some data
@@ -444,7 +444,7 @@ export default class ARMParser {
 
             // Store tags in 'extra' node data
             extraData['Tag ' + tagname] = tagval;  
-          })
+          });
         } else if(res.tags && typeof res.tags == "string") {
           extraData['tags'] = res.tags; 
         }
@@ -469,10 +469,10 @@ export default class ARMParser {
         if(res.type == 'microsoft.compute/virtualmachines') {
           try {
             if(res.properties.osProfile.linuxConfiguration) {
-              extraData.os = 'Linux'          
+              extraData.os = 'Linux';          
             } 
             if(res.properties.osProfile.windowsConfiguration) {
-              extraData.os = 'Windows'          
+              extraData.os = 'Windows';          
             }  
             if(res.properties.osProfile.computerName) {
               extraData.hostname = utils.encode( this.expParser.eval(res.properties.osProfile.computerName) );
@@ -505,7 +505,7 @@ export default class ARMParser {
           label: label,
           location: res.location ? utils.encode(res.location) : '',
           extra: extraData
-        }
+        };
         this.elements.push(cyNode);
   
         // Serious business - find the dependencies between resources
@@ -541,7 +541,7 @@ export default class ARMParser {
       id: `${r1.id}_${r2.id}`,
       source: r1.id,
       target: r2.id
-    } 
+    }; 
     this.elements.push(edge);
   }
 
@@ -569,15 +569,15 @@ export default class ARMParser {
           }
         }  
 
-        return linkRes.length
+        return linkRes.length;
       } catch(err) {
-        return 0
+        return 0;
         // linked template parsing error here
       }
     } else {
       console.log("### ArmView: Warn! Unable to locate linked template");
     }
-    return 0
+    return 0;
   }
 
   //

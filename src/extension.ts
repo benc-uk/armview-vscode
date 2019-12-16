@@ -61,7 +61,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 			let cacheTime = vscode.workspace.getConfiguration('armView').get<number>('linkedUrlCacheTime', 120);
 			
-			cache = new NodeCache({ stdTTL: cacheTime })
+			cache = new NodeCache({ stdTTL: cacheTime });
 
 			if(panel) {
 				// If we already have a panel, show it
@@ -84,7 +84,7 @@ export function activate(context: vscode.ExtensionContext) {
 			panel.iconPath = { 
 				dark: vscode.Uri.file(`${extensionPath}/assets/img/icons/eye-dark.svg`),
 				light: vscode.Uri.file(`${extensionPath}/assets/img/icons/eye-light.svg`)
-			}	
+			};	
 			
 			reporter = new TelemetryReporter(telemetryExtensionId, telemetryExtensionVersion, telemetryKey);
 			context.subscriptions.push(reporter);
@@ -161,9 +161,9 @@ export function activate(context: vscode.ExtensionContext) {
 			panel.onDidDispose(
         () => {
 					reporter.dispose();
-					panel = undefined
+					panel = undefined;
 					if(typingTimeout)
-						clearTimeout(typingTimeout)
+						clearTimeout(typingTimeout);
 				},
         null,
         context.subscriptions
@@ -176,7 +176,7 @@ async function savePNG(pngBase64: string) {
 	let saveAs = await vscode.window.showSaveDialog({ saveLabel: "Save PNG", filters: {'Images': ['png']} });
 	if(saveAs) {
 		let buf = Buffer.from(pngBase64, 'base64');
-		vscode.workspace.fs.writeFile(saveAs, buf)
+		vscode.workspace.fs.writeFile(saveAs, buf);
 	}
 }
 
@@ -184,7 +184,7 @@ async function savePNG(pngBase64: string) {
 // Prompt user for parameter file and apply it to the parser
 //
 async function pickParamsFile() {
-	let wsLocalDir = path.dirname(editor.document.fileName)
+	let wsLocalDir = path.dirname(editor.document.fileName);
 
 	if(wsLocalDir) {
 		let paramFile = await vscode.window.showOpenDialog({defaultUri: vscode.Uri.file(wsLocalDir), canSelectMany: false, filters:{ JSON: ['json'] } } );
@@ -225,7 +225,7 @@ async function refreshView() {
 	refreshedTime = Date.now();
 	if(typingTimeout)
 		clearTimeout(typingTimeout);
-	typingTimeout = undefined
+	typingTimeout = undefined;
 
 	if(!panel)
 		return;
@@ -255,12 +255,12 @@ async function refreshView() {
 			// Disable logging and telemetry for now
 			//console.log('### ArmView: ERROR STACK: ' + err.stack)
 			//reporter.sendTelemetryEvent('parseError', {'error': err, 'filename': editor.document.fileName});
-			panel.webview.postMessage({ command: 'error', payload: err.message })
+			panel.webview.postMessage({ command: 'error', payload: err.message });
 		}
 	} else {
-		vscode.window.showErrorMessage("No editor active, open a ARM template JSON file in the editor")
+		vscode.window.showErrorMessage("No editor active, open a ARM template JSON file in the editor");
 	}
-};
+}
 
 //
 // Initialize the contents of the webview - called at startup

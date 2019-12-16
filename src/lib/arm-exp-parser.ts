@@ -26,7 +26,7 @@ export default class ARMExpressionParser {
       if(match) {
         exp = match[1];
       } else {
-        return exp
+        return exp;
       }
     }
 
@@ -102,7 +102,7 @@ export default class ARMExpressionParser {
         return resid;
       }    
       if(funcName == 'copyindex') {
-        return 0
+        return 0;
       }
       if(funcName == 'guid') {
         const uuidv5 = require('uuid/v5');
@@ -137,11 +137,11 @@ export default class ARMExpressionParser {
        && !(propAccessor.charAt(1) >= '0' && propAccessor.charAt(1) <= '9')
        && !(propAccessor.charAt(1) == "'")) {
       // Evaluate propAccessor in case it includes an expression
-      let propAccessorResolved = this.eval(propAccessor, false)
+      let propAccessorResolved = this.eval(propAccessor, false);
    
       // If we get a string back it need's quoting, e.g. foo['baz']
       if(typeof propAccessorResolved == 'string') {
-        propAccessorResolved = `'${propAccessorResolved}'`
+        propAccessorResolved = `'${propAccessorResolved}'`;
       }
       // Otherwise it's hopefully a number 
       propAccessor = `[${propAccessorResolved}]`;
@@ -158,7 +158,7 @@ export default class ARMExpressionParser {
         // Without a defaultValue it is impossible to know what the parameters value could be!
         // So a fall-back out is to return the param name inside {}
         if(!val && val !== 0)
-          return `{${this.eval(varName)}}`
+          return `{${this.eval(varName)}}`;
       } else {
         // For variables we use the actual value
         val = source[findKey];
@@ -168,7 +168,7 @@ export default class ARMExpressionParser {
       if(typeof(val) == 'object') {
         if(!propAccessor) {
           // We're dealing with an object and have no property accessor, nothing we can do
-          return `{${JSON.stringify(val)}}`
+          return `{${JSON.stringify(val)}}`;
         }
         
         // Hack to try to handle copyIndex, default to first item in array
@@ -179,7 +179,7 @@ export default class ARMExpressionParser {
           let evalResult = eval('val' + propAccessor);
 
           if(typeof(evalResult) == 'undefined') {
-            console.log(`### ArmView: Warn! Your template contains invalid references: ${varName} -> ${propAccessor}`)
+            console.log(`### ArmView: Warn! Your template contains invalid references: ${varName} -> ${propAccessor}`);
             return "{undefined}";
           }
 
@@ -190,11 +190,11 @@ export default class ARMExpressionParser {
 
           if(typeof(evalResult) == 'object') {
             // We got an object back, give up
-            return `{${JSON.stringify(evalResult)}}`
+            return `{${JSON.stringify(evalResult)}}`;
           }
         } catch(err) {
-          console.log(`### ArmView: Warn! Your template contains invalid references: ${varName} -> ${propAccessor}`)
-          return "{undefined}"
+          console.log(`### ArmView: Warn! Your template contains invalid references: ${varName} -> ${propAccessor}`);
+          return "{undefined}";
         }
       }
 
@@ -206,7 +206,7 @@ export default class ARMExpressionParser {
       // Fall back
       return val;
     } else {
-      console.log(`### ArmView: Warn! Your template contains invalid references: ${varName} -> ${propAccessor}`)
+      console.log(`### ArmView: Warn! Your template contains invalid references: ${varName} -> ${propAccessor}`);
       return "{undefined}";
     }
   }
@@ -231,7 +231,7 @@ export default class ARMExpressionParser {
       try {
         param = param.trim();
       } catch(err) {}
-      res += joinStr + this.eval(param)
+      res += joinStr + this.eval(param);
     }
     return res;
   }
@@ -246,10 +246,10 @@ export default class ARMExpressionParser {
       let sep = '';
       let base = this.eval(paramList[0]);
       let rel = this.eval(paramList[1]);
-      if(!(base.endsWith('/') || rel.startsWith('/'))) sep = '/'
+      if(!(base.endsWith('/') || rel.startsWith('/'))) sep = '/';
       if(base.endsWith('/') && rel.startsWith('/')) {
-        sep = ''
-        base = base.substr(0, base.length - 1)
+        sep = '';
+        base = base.substr(0, base.length - 1);
       }
 
       return base + sep + rel;
@@ -312,7 +312,7 @@ export default class ARMExpressionParser {
       let endOfString = i == paramString.length-1;
       if((c === ',' && depth == 0) || endOfString) {
         let endPoint = endOfString ? paramString.length : i;
-        parts.push(paramString.substring(lastSplit, endPoint).trim())
+        parts.push(paramString.substring(lastSplit, endPoint).trim());
         lastSplit = i + 1;
       }
     }
