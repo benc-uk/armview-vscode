@@ -1,0 +1,24 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "baseUrl": {
+      "defaultValue": "baseUrl",
+      "type": "string"
+    }
+  },
+  "variables": {
+    "fullUri":"[concat(parameters('baseUrl'),'c569c279a232a653fb0f43b61151cfbe/raw/318f9b6e476908fabce6f15e15ad13f83919972f/waterfall.json')]"
+  },
+  "resources": [
+    {
+      "name": "directLink",
+      "type": "microsoft.resources/deployments",
+      "properties": {
+        "templateLink": {
+          "uri": "[variables('fullUri')]"
+        }
+      }
+    }      
+  ]
+}

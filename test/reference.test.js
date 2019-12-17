@@ -11,11 +11,12 @@ console.log = function(s) {}
 var parser = new ARMParser('', 'main', null, null);
 
 // Run ARMParser on given filename
-async function loadTemplate(filename) {
-	let template = fs.readFileSync(filename);
+async function loadTemplate(filename, parameterFilename) {
+  let template = fs.readFileSync(filename);
+  let parameters = parameterFilename && fs.readFileSync(parameterFilename);
   try {
-    return await parser.parse(template.toString());    
-  } catch(err) {
+    return await parser.parse(template.toString(), parameters && parameters.toString());
+  } catch (err) {
     return err;
   }
 }
@@ -107,4 +108,19 @@ describe('Test: expressions.json', function() {
     expect(res).to.be.an("array").to.containSubset([{data:{name:"977d95b7-70c9-5b8a-9a61-ebc22fb8167f"}}]);
     expect(res).to.be.an("array").to.containSubset([{data:{name:"zone-foo_web5"}}]);
   })
+});
+
+//
+//
+//
+describe('Test: waterfall.json', function () {
+  let res;
+  it('Parse file', async function () {
+    res = await loadTemplate("test/ref/waterfall-template.json", "test/ref/waterfall-params.json");
+    fs.writeFileSync('dump.json', JSON.stringify(res, null, 2))
+  });
+
+  it('Validate node count', async function () {
+    expect(res).to.have.lengthOf(8);
+  });
 });

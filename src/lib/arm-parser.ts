@@ -83,7 +83,7 @@ export default class ARMParser {
     console.log(`### ArmView: Pre-process pass complete`);
 
     // 2nd pass, work on resources
-    await this.processResources(this.template.resources);
+    await this.processResources(this.template.resources, parameterJSON);
     if(this.error) throw this.error;
     console.log(`### ArmView: Parsing complete, found ${this.elements.length} elements in template ${this.name}`);
 
@@ -238,7 +238,7 @@ export default class ARMParser {
   //
   // Main function to parse a resource, this will recurse into nested resources
   //
-  private async processResources(resources: Resource[]) {
+  private async processResources(resources: Resource[], parameterJSON?: string) {
     for(let res of resources) {
       try {
         let extraData: any;
@@ -407,7 +407,7 @@ export default class ARMParser {
 
           // If we have some data in subTemplate we were successful somehow reading the linked template!         
           if(subTemplate) {
-            linkedNodeCount = await this.parseLinkedOrNested(res, subTemplate);
+            linkedNodeCount = await this.parseLinkedOrNested(res, subTemplate, parameterJSON);
           } else {
             console.log("### ArmView: Warn! Unable to locate linked template");
           }
@@ -423,7 +423,7 @@ export default class ARMParser {
 
           // If we have some data
           if(subTemplate) {
-            linkedNodeCount = await this.parseLinkedOrNested(res, subTemplate);
+            linkedNodeCount = await this.parseLinkedOrNested(res, subTemplate, parameterJSON);
           } else {
             console.log("### ArmView: Warn! Unable to parse nested template");
           }
@@ -545,12 +545,12 @@ export default class ARMParser {
     this.elements.push(edge);
   }
 
-  private async parseLinkedOrNested(res: any, subTemplate: string): Promise<number> {   
+  private async parseLinkedOrNested(res: any, subTemplate: string, parameterJSON?: string): Promise<number> {   
     // If we've got some actual data, means we read the linked file somehow
     if(subTemplate) {
       let subParser = new ARMParser(this.iconBasePath, res.name, this.reporter, this.editor, this.cache); 
       try {
-        let linkRes = await subParser.parse(subTemplate);
+        let linkRes = await subParser.parse(subTemplate, parameterJSON);
         
         // This means we successfully resolved/loaded the linked deployment
         if(linkRes.length == 0) {
