@@ -117,7 +117,6 @@ describe('Test: waterfall.json', function () {
   let res;
   it('Parse file', async function () {
     res = await loadTemplate("test/ref/waterfall-template.json", "test/ref/waterfall-params.json");
-    fs.writeFileSync('dump.json', JSON.stringify(res, null, 2))
   });
 
   it('Validate node count', async function () {
