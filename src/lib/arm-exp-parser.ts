@@ -20,6 +20,10 @@ export default class ARMExpressionParser {
   // Most of the time it will evaluate down to a string, but a number can be returned also
   //
   public eval(exp: string, check: boolean = false): any {
+    // Catch some rare errors where non-strings are parsed
+    if(typeof exp != "string")
+      return exp;
+
     // Precheck called on top level calls to _evalExpression
     if(check) {
       let match = exp.match(/^\[(.*)\]$/);
@@ -29,10 +33,6 @@ export default class ARMExpressionParser {
         return exp;
       }
     }
-
-    // Catch some rare errors where non-strings are parsed
-    if(typeof exp != "string")
-      return exp;
 
     exp = exp.trim();
     

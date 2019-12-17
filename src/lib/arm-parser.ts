@@ -12,6 +12,7 @@ import 'isomorphic-fetch';
 import TelemetryReporter from 'vscode-extension-telemetry';
 import { TextEditor } from 'vscode';
 import { NodeCache } from 'node-cache';
+import * as _ from 'lodash';
 
 import * as utils from './utils';
 import ARMExpressionParser from './arm-exp-parser';
@@ -189,7 +190,7 @@ export default class ARMParser {
         // Assign a hashed id & full qualified name       
         res.id = utils.hashCode(this.name + '_' + res.type + '_' + res.name);
         res.fqn = res.type + '/' + res.name;
-        
+
         // Recurse into nested resources
         if(res.resources) {
           this.preProcess(res.resources, res);
@@ -233,6 +234,28 @@ export default class ARMParser {
         console.log(`### ArmView: Error applying parameter '${param}' Err: ${err}`);
       }
     }
+  }
+
+  //
+  // Resolve parameters to pass to the linked template
+  //
+  private resolveParameters(parameters: any){
+    return parameters && Object.keys(parameters).reduce((acc,k) => ({
+      ...acc,
+      [k]:{
+        value: this.expParser.eval(parameters[k].value,true)
+      }
+    }),{});
+  }
+
+  //
+  // Merge global parameters with passed parameters
+  //
+  private mergeWithGlobalParameters(parameters: any, parameterJson?: string){
+    const globalParameters = parameterJson ? JSON.parse(parameterJson) : {};
+    const baseParamJson = {"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",parameters:{}};
+    const mergedJson = _.merge(baseParamJson, globalParameters, {parameters});
+    return JSON.stringify(mergedJson);
   }
 
   //
@@ -296,6 +319,7 @@ export default class ARMParser {
         if(res.type == 'microsoft.resources/deployments' && res.properties && res.properties.templateLink && res.properties.templateLink.uri) {
           let linkUri = res.properties.templateLink.uri;
           linkUri = this.expParser.eval(linkUri, true);
+          res.properties.parameters = this.resolveParameters(res.properties.parameters);
 
           // Strip off everything weird after file extension, i.e. after any ? or { characters we find
           let match = linkUri.match(/(.*?\.\w*?)($|\?|{)/);
@@ -407,7 +431,8 @@ export default class ARMParser {
 
           // If we have some data in subTemplate we were successful somehow reading the linked template!         
           if(subTemplate) {
-            linkedNodeCount = await this.parseLinkedOrNested(res, subTemplate, parameterJSON);
+            const mergedParameterJson = this.mergeWithGlobalParameters(res.properties.parameters, parameterJSON);
+            linkedNodeCount = await this.parseLinkedOrNested(res, subTemplate, mergedParameterJson);
           } else {
             console.log("### ArmView: Warn! Unable to locate linked template");
           }
@@ -423,7 +448,8 @@ export default class ARMParser {
 
           // If we have some data
           if(subTemplate) {
-            linkedNodeCount = await this.parseLinkedOrNested(res, subTemplate, parameterJSON);
+            const mergedParameterJson = this.mergeWithGlobalParameters(res.properties.parameters, parameterJSON);
+            linkedNodeCount = await this.parseLinkedOrNested(res, subTemplate, mergedParameterJson);
           } else {
             console.log("### ArmView: Warn! Unable to parse nested template");
           }

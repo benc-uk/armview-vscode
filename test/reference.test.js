@@ -123,3 +123,17 @@ describe('Test: waterfall.json', function () {
     expect(res).to.have.lengthOf(8);
   });
 });
+
+//
+//
+//
+describe('Test: child-chain-template.json', function () {
+  let res;
+  it('Parse file', async function () {
+    res = await loadTemplate("test/ref/child-chain-template1.json");
+  });
+
+  it('Validate node count', async function () {
+    expect(res).to.have.lengthOf(5);
+  });
+});

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "linkedUrl1": {
+      "defaultValue": "https://gist.githubusercontent.com/Ghost---Shadow/ba9fed9d9e46c8c01d0dc28c8474dde3/raw/bf9eb0612a7f96a8e36eb6c38a4525e171397b10/depth-0.json",
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "name": "site1",
+      "type": "microsoft.web/sites"
+    },
+    {
+      "name": "directLink",
+      "type": "microsoft.resources/deployments",
+      "properties": {
+        "templateLink": {
+          "uri": "https://gist.githubusercontent.com/Ghost---Shadow/6cfbca2de256cf69bc814b930aa27024/raw/4baf915c66ff5c50cbfcb8103536424736df703f/child-chain-template2.json"
+        },
+        "parameters": {
+          "childUri": {
+            "value": "[parameters('linkedUrl1')]"
+          }
+        }
+      }
+    }
+  ]
+}
