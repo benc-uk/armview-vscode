@@ -116,7 +116,9 @@ export function activate(context: vscode.ExtensionContext) {
 				try {
 					// Switch editor and refresh
 					if(vscode.window.activeTextEditor) {
-						if(editor.document.fileName != vscode.window.activeTextEditor.document.fileName) {
+						const isActiveDocumentAJson = vscode.window.activeTextEditor.document.fileName.endsWith('.json');
+						const didActiveFileChange = editor.document.fileName != vscode.window.activeTextEditor.document.fileName;
+						if(didActiveFileChange && isActiveDocumentAJson) {
 							// Wipe param file on switch
 							paramFileContent = "";
 							if(panel) panel.webview.postMessage({ command: 'paramFile', payload: "" });
