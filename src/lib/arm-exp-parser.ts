@@ -4,6 +4,8 @@
 // Ben Coleman, 2019
 //
 
+import * as _ from 'lodash';
+
 import * as utils from './utils';
 import { Template } from './arm-parser-types';
 
@@ -15,11 +17,17 @@ export default class ARMExpressionParser {
     this.template = t;
   }
 
+  public eval(exp: string, check: boolean = false): any {
+    const evalResult = this.evalHelper(exp,check);
+    console.log(exp, evalResult);
+    return evalResult;
+  }
+
   //
   // Main ARM expression parser, attempts to evaluate and resolve ARM expressions 
   // Most of the time it will evaluate down to a string, but a number can be returned also
   //
-  public eval(exp: string, check: boolean = false): any {
+  public evalHelper(exp: string, check: boolean = false): any {
     // Catch some rare errors where non-strings are parsed
     if(typeof exp != "string")
       return exp;
@@ -107,7 +115,10 @@ export default class ARMExpressionParser {
       if(funcName == 'guid') {
         const uuidv5 = require('uuid/v5');
         return uuidv5(this.funcConcat(funcParams, ''), '36c56b01-f9c9-4c7d-9786-0372733417ea');
-      }                     
+      }
+      if(funcName == 'union'){
+        return this.funcUnion(funcParams);
+      }
     }
 
     // It looks like a string literal in single quotes
@@ -126,11 +137,73 @@ export default class ARMExpressionParser {
     return exp;
   }
 
+  private sanitizePropAccessor(propAccessor: string){
+    if(typeof(propAccessor) !== 'string') return undefined;
+    propAccessor = propAccessor.replace('copyIndex()', '0');
+    if(propAccessor.startsWith('.')) return propAccessor.slice(1);
+
+    // https://stackoverflow.com/a/27225148/1217998
+    const matched = propAccessor.match(/(?<=\[).+?(?=\])/g);
+    // Eval all [] accessors
+    if(matched){
+      matched.forEach((match) => {
+        propAccessor = propAccessor.replace(match, this.eval(match));
+      });
+    }
+    return propAccessor;
+  }
+
+  //
+  // Use lodash to resolve accessor
+  //
+  private resolveAccessor(source: any, varName: string, propAccessor: string) {
+    // Early exit
+    if(!source) 
+      return "{undefined}";
+
+    const resolvedVarName = this.eval(varName);
+    let resolvedVar = this.eval(source[resolvedVarName]);
+    const cleanPropAccessor = this.sanitizePropAccessor(propAccessor);
+
+    // Parameters have a default value
+    if(source == this.template.parameters) {
+      if(resolvedVar.defaultValue){
+        resolvedVar = resolvedVar.defaultValue;
+        if(!resolvedVar && resolvedVar !== 0)
+          return `{${this.eval(varName)}}`;
+      } else {
+        // Default value is not provided, cannot resolve
+        return `{parameters(${varName})}`;
+      }
+    }
+
+    // If JSON like then parse and traverse
+    const parsedObject = this.tryParseJson(resolvedVar);
+    const result = cleanPropAccessor ? _.get(parsedObject, cleanPropAccessor) : parsedObject;
+    if(result) return result;
+
+    // Strings can be returned without processing propAccessor
+    if(typeof(resolvedVar) === 'string'){
+      return resolvedVar;
+    }
+
+    // If resolved var is not found, return
+    if(resolvedVar === undefined) {
+      return `{${varName}}`;
+    }
+  }
+
+  private funcVarParam(source: any, varName: string, propAccessor: string) {
+    const result = this.resolveAccessor(source,varName,propAccessor);
+    // const result = this.funcVarParamHelper(source,varName,propAccessor);
+    return result;
+  }
+
   //
   // Emulate the ARM function `variables()` and `parameters()` to reference template variables/parameters
   // The only difference is the source 
   //
-  private funcVarParam(source: any, varName: string, propAccessor: string) {
+  private funcVarParamHelper(source: any, varName: string, propAccessor: string) {
     // propAccessor is the . or [] part of the object accessor
     // the [] notation requires some pre-processing for expressions e.g. foo[variable('bar')]
     if(propAccessor && propAccessor.charAt(0) == '['
@@ -234,6 +307,34 @@ export default class ARMExpressionParser {
       res += joinStr + this.eval(param);
     }
     return res;
+  }
+
+  private tryParseJson(maybeJsonString: string) {
+    try{
+      const parsedJson = typeof(maybeJsonString) === 'object' ? 
+         maybeJsonString : JSON.parse(maybeJsonString.substr(1, maybeJsonString.length-2));
+      return parsedJson;
+    }catch(e){
+      // TODO: Find out what is causing this breakage
+      console.error('Unable to parse:', maybeJsonString);
+      console.error(e);
+      return maybeJsonString;
+    }
+  }
+
+  //
+  // Emulate the ARM function `union()`
+  //
+  private funcUnion(funcParams: string) {
+    let paramList = this.parseParams(funcParams);
+
+    const unionedObj = paramList.reduce((acc,param)=>{
+      const evaledParam = this.eval(param);
+      const parsedJson = this.tryParseJson(evaledParam);
+      if(typeof(parsedJson) === 'string') return acc;
+      return _.merge(acc,parsedJson);
+    },{});
+    return `{${JSON.stringify(unionedObj)}}`;
   }
 
   //

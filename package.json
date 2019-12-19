@@ -105,6 +105,7 @@
 		"lint:fix": "tslint -p ./ --fix",
 		"watch": "tsc -w -p ./",
 		"test": "mocha --timeout 10000 test/reference.test.js",
+		"test:watch": "mocha --timeout 10000 test/reference.test.js --watch",
 		"test-qs": "mocha --timeout 20000 test/quickstart.test.js"
 	},
 	"dependencies": {

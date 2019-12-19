@@ -1,0 +1,34 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "obj1": {
+      "defaultValue": {
+        "kd0":{
+          "kd1":{
+            "kd2":"String1"
+          }
+        }
+      },
+      "type": "object"
+    },
+    "obj2": {
+      "defaultValue": {
+        "kd3":{
+          "kd4":"String2"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "variables": {
+    "unioned": "[union(parameters('obj1').kd0, parameters('obj2'))]",
+    "fn" : "[concat(variables('unioned').kd1.kd2, variables('unioned').kd3.kd4)]"
+  },
+  "resources": [
+    {
+      "name": "[variables('fn')]",
+      "type": "microsoft.web/sites"
+    } 
+  ]
+}
