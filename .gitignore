@@ -69,3 +69,6 @@ test/azure-quickstart-templates-master/**
 test/master.zip
 test/arm/**
 local/**
+
+# Custom
+/**/.DS_Store

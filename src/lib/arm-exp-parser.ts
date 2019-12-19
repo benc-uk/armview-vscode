@@ -8,18 +8,25 @@ import * as _ from 'lodash';
 
 import * as utils from './utils';
 import { Template } from './arm-parser-types';
+import * as fs from 'fs';
 
 export default class ARMExpressionParser {
   template: Template;
+  cache: any;
 
   // We store the template to save use passing it millions of times
   constructor(t: Template) {
     this.template = t;
+    this.cache = {};
   }
 
   public eval(exp: string, check: boolean = false): any {
+    // Speedup using dynamic programming
+    if(this.cache[exp]) return this.cache[exp];
     const evalResult = this.evalHelper(exp,check);
-    console.log(exp, evalResult);
+    this.cache[exp] = evalResult;
+    // For debugging
+    // fs.writeFileSync('cache.json',JSON.stringify(this.cache,null,2));
     return evalResult;
   }
 
@@ -137,65 +144,8 @@ export default class ARMExpressionParser {
     return exp;
   }
 
-  private sanitizePropAccessor(propAccessor: string){
-    if(typeof(propAccessor) !== 'string') return undefined;
-    propAccessor = propAccessor.replace('copyIndex()', '0');
-    if(propAccessor.startsWith('.')) return propAccessor.slice(1);
-
-    // https://stackoverflow.com/a/27225148/1217998
-    const matched = propAccessor.match(/(?<=\[).+?(?=\])/g);
-    // Eval all [] accessors
-    if(matched){
-      matched.forEach((match) => {
-        propAccessor = propAccessor.replace(match, this.eval(match));
-      });
-    }
-    return propAccessor;
-  }
-
-  //
-  // Use lodash to resolve accessor
-  //
-  private resolveAccessor(source: any, varName: string, propAccessor: string) {
-    // Early exit
-    if(!source) 
-      return "{undefined}";
-
-    const resolvedVarName = this.eval(varName);
-    let resolvedVar = this.eval(source[resolvedVarName]);
-    const cleanPropAccessor = this.sanitizePropAccessor(propAccessor);
-
-    // Parameters have a default value
-    if(source == this.template.parameters) {
-      if(resolvedVar.defaultValue){
-        resolvedVar = resolvedVar.defaultValue;
-        if(!resolvedVar && resolvedVar !== 0)
-          return `{${this.eval(varName)}}`;
-      } else {
-        // Default value is not provided, cannot resolve
-        return `{parameters(${varName})}`;
-      }
-    }
-
-    // If JSON like then parse and traverse
-    const parsedObject = this.tryParseJson(resolvedVar);
-    const result = cleanPropAccessor ? _.get(parsedObject, cleanPropAccessor) : parsedObject;
-    if(result) return result;
-
-    // Strings can be returned without processing propAccessor
-    if(typeof(resolvedVar) === 'string'){
-      return resolvedVar;
-    }
-
-    // If resolved var is not found, return
-    if(resolvedVar === undefined) {
-      return `{${varName}}`;
-    }
-  }
-
   private funcVarParam(source: any, varName: string, propAccessor: string) {
-    const result = this.resolveAccessor(source,varName,propAccessor);
-    // const result = this.funcVarParamHelper(source,varName,propAccessor);
+    const result = this.funcVarParamHelper(source,varName,propAccessor);
     return result;
   }
 
@@ -247,9 +197,10 @@ export default class ARMExpressionParser {
         // Hack to try to handle copyIndex, default to first item in array
         propAccessor = propAccessor.replace('copyIndex()', '0');
 
-        // Use eval to access property, I'm not happy about it, but don't have a choice
+        // Use lodash get to resolve accessors
         try {
-          let evalResult = eval('val' + propAccessor);
+          propAccessor = propAccessor.startsWith('.') ? propAccessor.slice(1) : propAccessor;
+          let evalResult = _.get(val, propAccessor);
 
           if(typeof(evalResult) == 'undefined') {
             console.log(`### ArmView: Warn! Your template contains invalid references: ${varName} -> ${propAccessor}`);
@@ -273,7 +224,10 @@ export default class ARMExpressionParser {
 
       if(typeof(val) == 'string') {
         // variable values can be expressions too, so down the rabbit hole we go...
-        return this.eval(val, true);
+        const evalResult = this.eval(val, true);
+        propAccessor = propAccessor.startsWith('.') ? propAccessor.slice(1) : propAccessor;
+        if(propAccessor) return _.get(this.tryParseJson(evalResult), propAccessor);
+        return evalResult;
       }
       
       // Fall back
@@ -316,8 +270,8 @@ export default class ARMExpressionParser {
       return parsedJson;
     }catch(e){
       // TODO: Find out what is causing this breakage
-      console.error('Unable to parse:', maybeJsonString);
-      console.error(e);
+      // console.error('Unable to parse:', maybeJsonString);
+      // console.error(e);
       return maybeJsonString;
     }
   }
