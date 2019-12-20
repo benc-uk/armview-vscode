@@ -153,7 +153,8 @@ export default class ARMExpressionParser {
     }
 
     // It looks like a number literal
-    match = exp.match(/^(\d+)/);
+    // End with $ to not match guids
+    match = exp.match(/^(\d+)$/);
     if(match) {
       return match[1].toString();
     }

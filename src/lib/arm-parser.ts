@@ -7,6 +7,7 @@
 
 const jsonLint = require('jsonlint');
 import * as path from 'path';
+import * as fs from 'fs';
 import * as stripJsonComments from 'strip-json-comments';
 import 'isomorphic-fetch';
 import TelemetryReporter from 'vscode-extension-telemetry';
@@ -17,6 +18,7 @@ import * as _ from 'lodash';
 import * as utils from './utils';
 import ARMExpressionParser from './arm-exp-parser';
 import { Template, CytoscapeNode, Resource } from './arm-parser-types';
+import * as flat from 'flat';
 
 export default class ARMParser {
   template: Template;
@@ -78,6 +80,9 @@ export default class ARMParser {
       console.log(`### ArmView: Parameter file applied`);
     }
     
+    // Eval all the eval-ables
+    this.evalAll();
+
     // First pass, fix types and assign ids with a hash function
     this.preProcess(this.template.resources, null);
     if(this.error) throw this.error;
@@ -90,6 +95,17 @@ export default class ARMParser {
 
     // return result elements
     return this.elements;
+  }
+
+  //
+  // Resolve all the variable-likes
+  //
+  private evalAll(){
+    const flatTemplate:any = flat.flatten(this.template);
+    Object.keys(flatTemplate).forEach((k) => {
+      flatTemplate[k] = this.expParser.eval(flatTemplate[k]);
+    });
+    this.template = flat.unflatten(flatTemplate);
   }
 
   //
@@ -196,6 +212,7 @@ export default class ARMParser {
           this.preProcess(res.resources, res);
         }
       } catch (err) {
+        console.error(err);
         this.error = err; //`Unable to pre-process ARM resources, template is probably invalid. ${ex}`
       }
     });
@@ -222,16 +239,27 @@ export default class ARMParser {
       throw new Error("File doesn't appear to be an ARM parameters file, but is valid JSON");      
     }    
 
+    // Deep merge with global parameters
+    this.template.parameters = JSON.parse(this.mergeWithGlobalParameters(this.template.parameters, parameterJSON)).parameters;
+
     // Loop over all parameters
     for(let param in paramObject.parameters) {
       try {
         let pVal = paramObject.parameters[param].value;
-        if(pVal !== "") {
+        // pVal can be empty or undefined
+        if(pVal !== "" && pVal) {
           // A cheap trick to force value into `defaultValue` to be picked up later
           this.template.parameters[param].defaultValue = pVal;
         }
       } catch(err) {
         console.log(`### ArmView: Error applying parameter '${param}' Err: ${err}`);
+      }
+    }
+
+    // Copy over the values to defaultValues
+    for(let pKey in this.template.parameters) {
+      if(this.template.parameters[pKey].value){
+        this.template.parameters[pKey].defaultValue = this.template.parameters[pKey].value;
       }
     }
   }
@@ -243,18 +271,45 @@ export default class ARMParser {
     return parameters && Object.keys(parameters).reduce((acc,k) => ({
       ...acc,
       [k]:{
-        value: this.expParser.eval(parameters[k].value,true)
+        value: this.expParser.eval(parameters[k].value,true),
+        defaultValue: this.expParser.eval(parameters[k].defaultValue,true)
       }
     }),{});
+  }
+
+  private tryParseJson(maybeJson: string){
+    try{
+      return JSON.parse(maybeJson);
+    } catch (e){
+      try{
+        // JSON can be like {{"foo":"bar"}}
+        const sliced = maybeJson.slice(1,maybeJson.length-1);
+        return JSON.parse(sliced);
+      } catch(e){
+        return maybeJson;
+      }
+    }
+  }
+
+  private unStringifyParameter(parameters: any) {
+    return typeof(parameters) === 'object' ? Object.keys(parameters).reduce((acc,next) => (
+      _.merge(acc,{
+        [next]:_.merge(parameters[next],{
+          value: this.tryParseJson(parameters[next].value),
+          defaultValue: this.tryParseJson(parameters[next].defaultValue),
+        })
+      })
+    ),{}) : {};
   }
 
   //
   // Merge global parameters with passed parameters
   //
   private mergeWithGlobalParameters(parameters: any, parameterJson?: string){
-    const globalParameters = parameterJson ? JSON.parse(parameterJson) : {};
+    const globalParameters = parameterJson ? this.unStringifyParameter(JSON.parse(parameterJson)) : {};
     const baseParamJson = {"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",parameters:{}};
-    const mergedJson = _.merge(baseParamJson, globalParameters, {parameters});
+    const parsedParameters = this.unStringifyParameter(parameters);
+    const mergedJson = _.merge(baseParamJson, globalParameters, {parameters: parsedParameters});
     return JSON.stringify(mergedJson);
   }
 
@@ -262,7 +317,7 @@ export default class ARMParser {
   // Main function to parse a resource, this will recurse into nested resources
   //
   private async processResources(resources: Resource[], parameterJSON?: string) {
-    for(let res of resources) {
+    const processPromises = resources.map(async(res) => {
       try {
         let extraData: any;
         extraData = {};
@@ -555,7 +610,8 @@ export default class ARMParser {
       } catch (err) {
         this.error = err;  //`Unable to process ARM resources, template is probably invalid. ${ex}`
       }
-    } // end for
+    }); // end for
+    await Promise.all(processPromises);
   }
 
   //
@@ -597,8 +653,10 @@ export default class ARMParser {
 
         return linkRes.length;
       } catch(err) {
-        return 0;
         // linked template parsing error here
+        console.error('### ArmView: Error! Unable to parse linked template');
+        console.error(err);
+        return 1;
       }
     } else {
       console.log("### ArmView: Warn! Unable to locate linked template");

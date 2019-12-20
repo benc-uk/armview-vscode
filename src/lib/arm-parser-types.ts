@@ -13,6 +13,7 @@ export interface Template {
 
 export interface Parameter {
   defaultValue: string;
+  value: string;
 }
 
 export interface Resource {

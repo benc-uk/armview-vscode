@@ -10,8 +10,13 @@
 			"type": "extensionHost",
 			"request": "launch",
 			"runtimeExecutable": "${execPath}",
-			"args": ["--extensionDevelopmentPath=${workspaceRoot}", "C:\\temp\\stuff"],
-			"outFiles": ["${workspaceFolder}/out/**/*.js"],
+			"args": [
+				"--extensionDevelopmentPath=${workspaceRoot}",
+				"C:\\temp\\stuff"
+			],
+			"outFiles": [
+				"${workspaceFolder}/out/**/*.js"
+			],
 			"preLaunchTask": "npm: watch"
 		},
 		{
@@ -29,5 +34,20 @@
 			"internalConsoleOptions": "neverOpen",
 			"protocol": "inspector"
 		},
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Mocha Arm Parser",
+			"program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+			"args": [
+				"--timeout",
+				"999999",
+				"--colors",
+				"${workspaceFolder}/test/arm-parser.test.js",
+			],
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen",
+			"protocol": "inspector"
+		}
 	]
 }

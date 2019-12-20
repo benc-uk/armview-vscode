@@ -105,12 +105,15 @@
 		"lint:fix": "tslint -p ./ --fix",
 		"watch": "tsc -w -p ./",
 		"test": "mocha --timeout 10000 test/reference.test.js",
+		"test:parser": "mocha --timeout 10000 test/arm-parser.test.js --watch",
 		"test:watch": "mocha --timeout 10000 test/reference.test.js --watch",
 		"test-qs": "mocha --timeout 20000 test/quickstart.test.js"
 	},
 	"dependencies": {
+		"@types/flat": "0.0.28",
 		"@types/lodash": "^4.14.149",
 		"axios": "^0.19.0",
+		"flat": "^5.0.0",
 		"isomorphic-fetch": "^2.2.1",
 		"jsonlint": "^1.6.3",
 		"node-cache": "^4.2.1",

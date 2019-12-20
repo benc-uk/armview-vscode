@@ -57,28 +57,28 @@ describe('Test: vars-params.json', function () {
   });
 
   it('Validate var & param substitution 1', async function () {
-    expect(res).to.be.an("array").to.containSubset([{ data: { name: "Lou%20Reed" } }]);
+    expect(res[0].data.name).to.be.eq("A%20simple%20var_A%20simple%20name");
   })
   it('Validate var & param substitution 2', async function () {
-    expect(res).to.be.an("array").to.containSubset([{ data: { name: "Waters" } }]);
+    expect(res[1].data.name).to.be.eq("Cheese_A%20simple%20var");
   })
   it('Validate var & param substitution 3', async function () {
-    expect(res).to.be.an("array").to.containSubset([{ data: { name: "Zappa" } }]);
+    expect(res[2].data.name).to.be.eq("Lou%20Reed");
   })
   it('Validate var & param substitution 4', async function () {
-    expect(res).to.be.an("array").to.containSubset([{ data: { name: "Bowie" } }]);
+    expect(res[3].data.name).to.be.eq("Zappa");
   })
   it('Validate var & param substitution 5', async function () {
-    expect(res).to.be.an("array").to.containSubset([{ data: { name: "Iommi" } }]);
+    expect(res[4].data.name).to.be.eq("Waters");
   })
   it('Validate var & param substitution 6', async function () {
-    expect(res).to.be.an("array").to.containSubset([{ data: { name: "Osbourne" } }]);
+    expect(res[5].data.name).to.be.eq("Bowie");
   })
   it('Validate var & param substitution 7', async function () {
-    expect(res).to.be.an("array").to.containSubset([{ data: { name: "Cheese_A%20simple%20var" } }]);
+    expect(res[6].data.name).to.be.eq("Osbourne");
   })
   it('Validate var & param substitution 8', async function () {
-    expect(res).to.be.an("array").to.containSubset([{ data: { name: "A%20simple%20var_A%20simple%20name" } }]);
+    expect(res[7].data.name).to.be.eq("Iommi");
   })
 });
 
@@ -114,13 +114,23 @@ describe('Test: expressions.json', function () {
     expect(res).to.have.lengthOf(6);
   });
 
-  it('Validate expression evaluation', async function () {
-    expect(res).to.be.an("array").to.containSubset([{ data: { name: "TWO" } }]);
-    expect(res).to.be.an("array").to.containSubset([{ data: { name: "that%20at%20ok%20ZIS" } }]);
-    expect(res).to.be.an("array").to.containSubset([{ data: { name: "http%3A%2F%2Fexample.com%2Fben.js" } }]);
-    expect(res).to.be.an("array").to.containSubset([{ data: { name: "LTM4NjUwNDUwNw" } }]);
-    expect(res).to.be.an("array").to.containSubset([{ data: { name: "977d95b7-70c9-5b8a-9a61-ebc22fb8167f" } }]);
-    expect(res).to.be.an("array").to.containSubset([{ data: { name: "zone-foo_web5" } }]);
+  it('Validate expression evaluation 1', async function () {
+    expect(res[0].data.name).to.be.eq("zone-foo_web5");
+  })
+  it('Validate expression evaluation 2', async function () {
+    expect(res[1].data.name).to.be.eq("http%3A%2F%2Fexample.com%2Fben.js");
+  })
+  it('Validate expression evaluation 3', async function () {
+    expect(res[2].data.name).to.be.eq("that%20at%20ok%20ZIS");
+  })
+  it('Validate expression evaluation 4', async function () {
+    expect(res[3].data.name).to.be.eq("TWO");
+  })
+  it('Validate expression evaluation 5', async function () {
+    expect(res[4].data.name).to.be.eq("977d95b7-70c9-5b8a-9a61-ebc22fb8167f");
+  })
+  it('Validate expression evaluation 6', async function () {
+    expect(res[5].data.name).to.be.eq("LTM4NjUwNDUwNw");
   })
 });
 

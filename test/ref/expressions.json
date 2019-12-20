@@ -16,26 +16,32 @@
   },
   "resources": [
     {
+      // zone-foo_web5
       "name": "[concat(variables('prefix'), '-', toLower(concat('FOO_', parameters('webParam'))))]",
       "type": "microsoft.network/dnszones"
     },
     {
+      // http%3A%2F%2Fexample.com%2Fben.js
       "name": "[uri('http://example.com', 'ben.js')]",
       "type": "microsoft.network/dnszones"
     },
     {
+      // that%20at%20ok%20ZIS
       "name": "[replace('this is ok ZIS', 'is', 'at')]",
       "type": "microsoft.network/dnszones"
     },
     {
+      // TWO
       "name": "[toUpper(substring(parameters('testString'), 4, 3))]",
       "type": "microsoft.network/dnszones"
     },
     {
+      // 977d95b7-70c9-5b8a-9a61-ebc22fb8167f
       "name": "[guid('foo')]",
       "type": "microsoft.network/dnszones"
     },
     {
+      // LTM4NjUwNDUwNw
       "name": "[uniqueString(deployment().name)]",
       "type": "microsoft.network/dnszones"
     }          
