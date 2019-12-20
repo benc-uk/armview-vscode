@@ -701,7 +701,8 @@ export default class ARMParser {
       res.dependsOn = Object.keys(flatRes)
         .reduce((acc: Array<string>, k:string) => {
           return acc.concat(this.extractDependency(flatRes[k]));
-        },[]);
+        },res.dependsOn || []);
+      res.dependsOn.sort();
     });
   }
 }

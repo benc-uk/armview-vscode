@@ -143,5 +143,37 @@ describe('ARMParser', () => {
       parser.referencesToDependsOn();
       expect(parser.template.resources).to.deep.eq(expected)
     })
+    it('should not discard existing depends', () => {
+      parser.template.resources = [
+        {
+          name: 'n1',
+          someKey1: "[reference('n2')]",
+          dependsOn: ['n3']
+        },
+        {
+          name: 'n2',
+        },
+        {
+          name: 'n3'
+        }
+      ]
+      const expected = [
+        {
+          name: 'n1',
+          someKey1: "[reference('n2')]",
+          dependsOn: ['n2','n3']
+        },
+        {
+          name: 'n2',
+          dependsOn: []
+        },
+        {
+          name: 'n3',
+          dependsOn: []
+        }
+      ]
+      parser.referencesToDependsOn();
+      expect(parser.template.resources).to.deep.eq(expected)
+    })
   })
 })
