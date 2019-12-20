@@ -21,12 +21,30 @@ export default class ARMExpressionParser {
   }
 
   public eval(exp: string, check: boolean = false): any {
+    // TODO: Make sure that non string values are never passed in the first place
+    if(typeof(exp) !== 'string') return exp;
+
     // Speedup using dynamic programming
-    if(this.cache[exp]) return this.cache[exp];
-    const evalResult = this.evalHelper(exp,check);
-    this.cache[exp] = evalResult;
-    // For debugging
-    // fs.writeFileSync('cache.json',JSON.stringify(this.cache,null,2));
+    if(this.cache[exp]) {
+      const evalResult = this.cache[exp];
+      // Dont cache unresolved as it might be resolved later
+      // TODO: Find a more elegant way of doing this
+      if(typeof(evalResult) === 'string' && evalResult.indexOf('{') === -1){
+        return this.cache[exp];
+      }
+    }
+    
+    // Eval all the way to the bottom
+    let lastEvalResult = this.evalHelper(exp,check);
+    this.cache[exp] = lastEvalResult;
+    
+    let evalResult = '';
+    while(lastEvalResult !== evalResult) {
+      evalResult = this.evalHelper(lastEvalResult,check);
+      this.cache[lastEvalResult] = evalResult;
+      lastEvalResult = evalResult;
+    }
+
     return evalResult;
   }
 
