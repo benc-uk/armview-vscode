@@ -79,6 +79,9 @@ export default class ARMParser {
       if(this.error) throw this.error;
       console.log(`### ArmView: Parameter file applied`);
     }
+
+    // Convert all references to depends on
+    this.referencesToDependsOn();
     
     // Eval all the eval-ables
     this.evalAll();
@@ -673,6 +676,32 @@ export default class ARMParser {
       // Switched to endsWith rather than include, less generous but more correct
       return res.fqn.toLowerCase().endsWith(name.toLowerCase());
       //return res.fqn.toLowerCase().includes(name.toLowerCase());
+    });
+  }
+
+  //
+  // Extract dependency from reference
+  //
+  private extractDependency(value: string){
+    if(typeof(value) !== 'string') return [];
+    // TODO: The following is not regular grammer so it cannot be parsed with regex
+    // [concat(reference('n1').name,'-',reference('n2').name,'-',reference('n3').name)]
+    const regex:RegExp = /reference\((.*)\)/;
+    const match = value.match(regex);
+    if(!match) return [];
+    return [this.expParser.eval(match[1])];
+  }
+
+  //
+  // Convert all references to depends on for the graphing to work
+  //
+  private referencesToDependsOn(){
+    this.template.resources.forEach((res) => {
+      const flatRes:any = flat.flatten(res);
+      res.dependsOn = Object.keys(flatRes)
+        .reduce((acc: Array<string>, k:string) => {
+          return acc.concat(this.extractDependency(flatRes[k]));
+        },[]);
     });
   }
 }

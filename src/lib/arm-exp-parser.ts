@@ -173,6 +173,9 @@ export default class ARMExpressionParser {
   // The only difference is the source 
   //
   private funcVarParamHelper(source: any, varName: string, propAccessor: string) {
+    // Used in error messages
+    let paramOrVal = "parameters";
+
     // propAccessor is the . or [] part of the object accessor
     // the [] notation requires some pre-processing for expressions e.g. foo[variable('bar')]
     if(propAccessor && propAccessor.charAt(0) == '['
@@ -202,6 +205,7 @@ export default class ARMExpressionParser {
         if(!val && val !== 0)
           return `{${this.eval(varName)}}`;
       } else {
+        paramOrVal = "variables";
         // For variables we use the actual value
         val = source[findKey];
       }
@@ -223,7 +227,7 @@ export default class ARMExpressionParser {
 
           if(typeof(evalResult) == 'undefined') {
             console.log(`### ArmView: Warn! Your template contains invalid references: ${varName} -> ${propAccessor}`);
-            return "{undefined}";
+            return `${paramOrVal}('${varName}')${propAccessor}`;
           }
 
           if(typeof(evalResult) == 'string') {
@@ -237,7 +241,7 @@ export default class ARMExpressionParser {
           }
         } catch(err) {
           console.log(`### ArmView: Warn! Your template contains invalid references: ${varName} -> ${propAccessor}`);
-          return "{undefined}";
+          return `${paramOrVal}('${varName}')${propAccessor}`;
         }
       }
 
@@ -253,7 +257,7 @@ export default class ARMExpressionParser {
       return val;
     } else {
       console.log(`### ArmView: Warn! Your template contains invalid references: ${varName} -> ${propAccessor}`);
-      return "{undefined}";
+      return `${paramOrVal}('${varName}')${propAccessor}`;
     }
   }
 
