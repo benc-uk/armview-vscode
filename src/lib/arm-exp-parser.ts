@@ -98,6 +98,10 @@ export default class ARMExpressionParser {
       if(funcName == 'parameters') {
         return this.funcVarParam(this.template.parameters, this.eval(funcParams), funcProps);
       }
+
+      if(funcName == 'reference') {
+        return this.funcReferenceParam(this.eval(funcParams), funcProps);
+      }
     }
 
     // It looks like a 'plain' function call without . something after it
@@ -169,6 +173,26 @@ export default class ARMExpressionParser {
 
     // Catch all, just return the expression, unparsed
     return exp;
+  }
+
+  //
+  // Locate a resource by resource id
+  //
+  private findResource(name: string) {
+    return this.template.resources.find(res => {
+      const resolvedName = this.eval(res.name);
+      return resolvedName === name;
+    });
+  }
+
+  //
+  // Find property of reference
+  //
+  private funcReferenceParam(name: string, propAccessor: string) {
+    const resource = this.findResource(name);
+    if(propAccessor.startsWith('.')) propAccessor = propAccessor.slice(1);
+    // TODO: Resolve the linked template if it exists
+    return _.get(resource,propAccessor,'{invalid_reference}'); 
   }
 
   private funcVarParam(source: any, varName: string, propAccessor: string) {

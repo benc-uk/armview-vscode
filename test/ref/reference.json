@@ -1,0 +1,28 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "r1": {
+      "type":"object",
+      "defaultValue":{
+        "name":"obj1"
+      }
+    }
+  },
+  "variables": {
+  },
+  "resources": [
+    {
+      "name": "[parameters('r1').name]",
+      "type": "microsoft.web/sites"
+    },
+    {
+      "name": "obj2",
+      "type": "[reference(parameters('r1').name).type]"
+    },
+    {
+      "name": "obj3",
+      "type": "[reference('INVALID').type]"
+    }
+  ]
+}

@@ -175,3 +175,23 @@ describe('Test: union.json', function () {
     expect(res[0].data.name).to.eq('String1String2')
   });
 });
+
+//
+//
+//
+describe('Test: reference.json', function () {
+  let res;
+  it('Parse file', async function () {
+    res = await loadTemplate("test/ref/reference.json");
+  });
+
+  it('Validate name', async function () {
+    expect(res[0].data.name).to.eq('obj1')
+  });
+  it('Validate type', async function () {
+    expect(res[1].data.type).to.eq('microsoft.web/sites')
+  });
+  it('Gracefully fail invalids', async function () {
+    expect(res[3].data.type).to.eq('{invalid_reference}')
+  });
+});
