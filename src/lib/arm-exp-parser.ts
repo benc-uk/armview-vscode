@@ -48,6 +48,11 @@ export default class ARMExpressionParser {
     return evalResult;
   }
 
+  private funcCallWithPropertyExtractor(exp: string): any{
+    exp = exp.replace('[','').replace(']','');
+    return exp.match(/(\w+)\((.*)\)((?:\.|\[).*)/);
+  }
+
   //
   // Main ARM expression parser, attempts to evaluate and resolve ARM expressions 
   // Most of the time it will evaluate down to a string, but a number can be returned also
@@ -70,12 +75,12 @@ export default class ARMExpressionParser {
     exp = exp.trim();
     
     // It looks like a function call with a property reference e.g foo().bar or foo()['bar']
-    let match = exp.match(/(\w+)\((.*)\)((?:\.|\[).*)/);
+    let match = this.funcCallWithPropertyExtractor(exp);
     let funcProps = undefined;
     if(match) {
       let funcName = match[1];
       let funcParams = match[2];
-      funcProps = match[3];     
+      funcProps = match[3];
 
       // Catch some special cases, with referenced properties, e.g. resourceGroup().location
       if(funcName == 'resourceGroup' && funcProps == '.id') return '{res-group-id}'; 
@@ -89,7 +94,7 @@ export default class ARMExpressionParser {
 
       if(funcName == 'parameters') {
         return this.funcVarParam(this.template.parameters, this.eval(funcParams), funcProps);
-      }           
+      }
     }
 
     // It looks like a 'plain' function call without . something after it

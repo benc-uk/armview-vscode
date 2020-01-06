@@ -104,8 +104,10 @@
 		"lint": "tslint -p ./",
 		"lint:fix": "tslint -p ./ --fix",
 		"watch": "tsc -w -p ./",
-		"test": "mocha --timeout 10000 test/reference.test.js",
-		"test:parser": "mocha --timeout 10000 test/arm-parser.test.js --watch",
+		"test": "npm run test:reference && npm run test:parser && npm run test:exp-parser",
+		"test:reference": "mocha --timeout 10000 test/reference.test.js",
+		"test:parser": "mocha --timeout 10000 test/arm-parser.test.js",
+		"test:exp-parser": "mocha --timeout 10000 test/arm-exp-parser.test.js",
 		"test:watch": "mocha --timeout 10000 test/reference.test.js --watch",
 		"test-qs": "mocha --timeout 20000 test/quickstart.test.js"
 	},
