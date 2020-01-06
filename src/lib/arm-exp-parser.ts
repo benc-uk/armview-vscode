@@ -49,7 +49,10 @@ export default class ARMExpressionParser {
   }
 
   private funcCallWithPropertyExtractor(exp: string): any{
-    exp = exp.replace('[','').replace(']','');
+    // Remove surrounding [] 
+    if(exp[0] === '[' && exp[exp.length-1] === ']') {
+      exp = exp.slice(1,exp.length-1);
+    }
     return exp.match(/(\w+)\((.*)\)((?:\.|\[).*)/);
   }
 
