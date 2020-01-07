@@ -23,6 +23,19 @@
     {
       "name": "obj3",
       "type": "[reference('INVALID').type]"
+    },
+    {
+      "name": "obj4",
+      "type": "microsoft.resources/deployments",
+      "properties": { 
+        "templateLink": {
+          "uri": "https://gist.githubusercontent.com/Ghost---Shadow/ba9fed9d9e46c8c01d0dc28c8474dde3/raw/562a98f77e54e26221a232ad7a04111eaaded1ab/depth-0.json"
+        }
+      }
+    },
+    {
+      "name": "obj5",
+      "type": "[reference('obj4').outputs.web1Type.value]"
     }
   ]
 }

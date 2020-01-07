@@ -13,11 +13,13 @@ import * as fs from 'fs';
 export default class ARMExpressionParser {
   template: Template;
   cache: any;
+  secondPass: boolean;
 
   // We store the template to save use passing it millions of times
   constructor(t: Template) {
     this.template = t;
     this.cache = {};
+    this.secondPass = false;
   }
 
   public eval(exp: string, check: boolean = false): any {
@@ -26,11 +28,14 @@ export default class ARMExpressionParser {
 
     // Speedup using dynamic programming
     if(this.cache[exp]) {
-      const evalResult = this.cache[exp];
-      // Dont cache unresolved as it might be resolved later
-      // TODO: Find a more elegant way of doing this
-      if(typeof(evalResult) === 'string' && evalResult.indexOf('{') === -1){
-        return this.cache[exp];
+      // Dont cache pending_refernce in second pass
+      if(!(this.secondPass && this.cache[exp].startsWith('['))){
+        const evalResult = this.cache[exp];
+        // Dont cache unresolved as it might be resolved later
+        // TODO: Find a more elegant way of doing this
+        if(typeof(evalResult) === 'string' && evalResult.indexOf('{') === -1){
+          return this.cache[exp];
+        }
       }
     }
     
@@ -100,6 +105,15 @@ export default class ARMExpressionParser {
       }
 
       if(funcName == 'reference') {
+        // Outputs will be resolved in the second pass
+        if(funcProps.indexOf('outputs') > -1) {
+          return `[pending_reference(${funcParams})${funcProps}]`;
+        }
+        return this.funcReferenceParam(this.eval(funcParams), funcProps);
+      }
+
+      // Will be resolved in second pass
+      if(funcName == 'pending_reference' && this.secondPass) {
         return this.funcReferenceParam(this.eval(funcParams), funcProps);
       }
     }
@@ -191,8 +205,7 @@ export default class ARMExpressionParser {
   private funcReferenceParam(name: string, propAccessor: string) {
     const resource = this.findResource(name);
     if(propAccessor.startsWith('.')) propAccessor = propAccessor.slice(1);
-    // TODO: Resolve the linked template if it exists
-    return _.get(resource,propAccessor,'{invalid_reference}'); 
+    return _.get(resource,propAccessor,'{invalid_reference}');
   }
 
   private funcVarParam(source: any, varName: string, propAccessor: string) {

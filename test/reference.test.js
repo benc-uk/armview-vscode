@@ -1,6 +1,7 @@
 const fail = require("assert").fail;
 const ARMParser = require('../out/lib/arm-parser').default;
 const fs = require('fs');
+const _ = require('lodash')
 
 const chai = require('chai');
 const expect = chai.expect;
@@ -186,12 +187,22 @@ describe('Test: reference.json', function () {
   });
 
   it('Validate name', async function () {
-    expect(res[0].data.name).to.eq('obj1')
+    const obj = _.find(res,{data:{name:'obj1'}})
+    expect(obj).to.not.be.undefined;
   });
   it('Validate type', async function () {
-    expect(res[1].data.type).to.eq('microsoft.web/sites')
+    const obj = _.find(res,{data:{name:'obj2'}})
+    expect(obj).to.not.be.undefined;
+    expect(obj.data.type).to.eq('microsoft.web/sites')
   });
   it('Gracefully fail invalids', async function () {
-    expect(res[3].data.type).to.eq('{invalid_reference}')
+    const obj = _.find(res,{data:{name:'obj3'}})
+    expect(obj).to.not.be.undefined;
+    expect(obj.data.type).to.eq('{invalid_reference}')
+  });
+  it('Resolve outputs of linked templates', async function () {
+    const obj = _.find(res,{data:{name:'obj5'}})
+    expect(obj).to.not.be.undefined;
+    expect(obj.data.type).to.eq('microsoft.web/sites')
   });
 });

@@ -9,6 +9,7 @@ export interface Template {
   parameters: Record<string, Parameter>;
   variables:  Record<string, any>;
   resources:  Resource[];
+  outputs?: any;
 }
 
 export interface Parameter {
@@ -44,7 +45,7 @@ export class CytoscapeNode {
 
 type CytoscapeNodeTypes = 'nodes' | 'edges';
 
-interface CytoscapeNodeData {
+export interface CytoscapeNodeData {
   id:       string;
   name:     string;
   img:      string;

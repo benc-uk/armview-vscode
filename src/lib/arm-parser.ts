@@ -17,7 +17,7 @@ import * as _ from 'lodash';
 
 import * as utils from './utils';
 import ARMExpressionParser from './arm-exp-parser';
-import { Template, CytoscapeNode, Resource } from './arm-parser-types';
+import { Template, CytoscapeNode, Resource, CytoscapeNodeData } from './arm-parser-types';
 import * as flat from 'flat';
 
 export default class ARMParser {
@@ -109,6 +109,11 @@ export default class ARMParser {
       flatTemplate[k] = this.expParser.eval(flatTemplate[k]);
     });
     this.template = flat.unflatten(flatTemplate);
+    
+    // Update fqn if changed
+    this.template.resources.forEach(res => {
+      res.fqn = res.type + '/' + res.name;
+    });
   }
 
   //
@@ -201,10 +206,12 @@ export default class ARMParser {
         }   
 
         // Make all res types fully qualified, solves a lots of headaches
-        if(parentRes)
-          res.type = parentRes.type.toLowerCase() + '/' + res.type.toLowerCase();
-        else
-          res.type = res.type.toLowerCase();
+        if(!res.type.startsWith('[')){ // Dont lowercase object keys
+          if(parentRes)
+            res.type = parentRes.type.toLowerCase() + '/' + res.type.toLowerCase();
+          else
+            res.type = res.type.toLowerCase();
+        }
 
         // Assign a hashed id & full qualified name       
         res.id = utils.hashCode(this.name + '_' + res.type + '_' + res.name);
@@ -317,61 +324,180 @@ export default class ARMParser {
   }
 
   //
+  // After the second pass, some elements might get
+  // out of sync. Find and update those elements
+  //
+  private syncElements(){
+    for(let i = 0; i < this.elements.length; i +=1 ){
+      // const data = this.elements[i].data as CytoscapeNodeData;
+      // const resource = this.findResource(data.name);
+      // TODO
+    }
+  }
+
+  //
+  // Second pass
+  //
+  private executeSecondPass(){
+    this.expParser.secondPass = true;
+    this.expParser.template = this.template;
+    this.evalAll();
+    this.syncElements();
+  }
+
+  //
+  // Choose image
+  //
+  private chooseImage(res:Resource):string {
+    // Workout which icon image to use, no way to catch missing images client side so we do it here
+    let img = 'default.svg';
+    let iconExists = require('fs').existsSync(path.join(this.iconBasePath, `/${res.type}.svg`));
+    if(iconExists) {
+      img = `${res.type}.svg`;
+    } else {
+      // API Management has about 7 million sub-resources, rather than include them all, we assign a custom default for APIM
+      if(res.type.includes('apimanagement')) {
+        img = 'microsoft.apimanagement/default.svg';
+      } else {
+        // Send telemetry on missing icons, this helps me narrow down which ones to add in the future
+        let fileHash = "";
+        if(this.editor) {
+          fileHash = this.editor.document.fileName;
+          fileHash = utils.hashCode(this.editor.document.fileName);
+        }
+        // Send resource type, FQN and a hashed/obscured version of the filename
+        if(this.reporter) this.reporter.sendTelemetryEvent('missingIcon', { 'resourceType': res.type, 'resourceFQN': res.fqn, 'fileHash': fileHash });
+
+        // Use default icon as nothing else found
+        img = 'default.svg';
+      }
+    }
+    // App Services - Sites & plans can have different icons depending on 'kind'
+    if(res.kind && res.type.includes('microsoft.web')) {
+      if(res.kind.toLowerCase().includes('api')) img = `microsoft.web/apiapp.svg`;
+      if(res.kind.toLowerCase().includes('mobile')) img = `microsoft.web/mobileapp.svg`;
+      if(res.kind.toLowerCase().includes('function')) img = `microsoft.web/functionapp.svg`;
+      if(res.kind.toLowerCase().includes('linux')) img = `microsoft.web/serverfarmslinux.svg`;
+    }
+    
+    // Event grid subscriptions can sit under many resource types
+    if(res.type.includes('eventsubscriptions')) {
+      img = `microsoft.eventgrid/eventsubscriptions.svg`;
+    }
+
+    // Linux VM icon with Tux :)
+    if(res.type.includes('microsoft.compute') && res.properties && res.properties.osProfile) {
+      if(res.properties.osProfile.linuxConfiguration) {
+        img = `microsoft.compute/virtualmachines-linux.svg`;
+      }
+    }
+    return img;
+  }
+
+  //
+  // Resource to element
+  //
+  private async resourceToElement(res:Resource){
+    let extraData: any;
+    extraData = {};
+
+    // Workout which icon image to use, no way to catch missing images client side so we do it here
+    const img = this.chooseImage(res);
+
+    // Label is the last part of the resource type
+    let label = res.type.replace(/^.*\//i, '');
+            // Process resource tags, can be objects or strings
+    if(res.tags && typeof res.tags == "object") {
+      Object.keys(res.tags).forEach(tagname => {
+        let tagval = res.tags[tagname];
+        //tagval = utils.encode(this._evalExpression(tagval));
+        // Some crazy people put expressions in their tag names, I mean really...
+        tagname = utils.encode(this.expParser.eval(tagname));
+
+        // Handle special case for displayName tag, which some people use. I dunno
+        if(tagname.toLowerCase() == 'displayname') {
+          res.name = tagval;
+        }
+
+        // Store tags in 'extra' node data
+        extraData['Tag ' + tagname] = tagval;  
+      });
+    } else if(res.tags && typeof res.tags == "string") {
+      extraData['tags'] = res.tags; 
+    }
+
+    // Process SKU
+    if(res.sku && typeof res.sku == "object") {
+      Object.keys(res.sku).forEach(skuname => {
+        if(res.sku) {
+          let skuval = res.sku[skuname];
+          //skuval = utils.encode(this._evalExpression(skuval));
+          //skuname = utils.encode(this._evalExpression(skuname));
+
+          // Store SKU details in 'extra' node data
+          extraData['SKU ' + skuname] = skuval;  
+        }
+      });
+    } else if(res.sku && typeof res.sku == "string") {
+      extraData['sku'] = res.sku; 
+    }
+
+    // Virtual Machines - Try and grab some of the VM info
+    if(res.type == 'microsoft.compute/virtualmachines') {
+      try {
+        if(res.properties.osProfile.linuxConfiguration) {
+          extraData.os = 'Linux';          
+        } 
+        if(res.properties.osProfile.windowsConfiguration) {
+          extraData.os = 'Windows';          
+        }  
+        if(res.properties.osProfile.computerName) {
+          extraData.hostname = utils.encode( this.expParser.eval(res.properties.osProfile.computerName) );
+        }                              
+        if(res.properties.osProfile.adminUsername) {
+          extraData.user = utils.encode( this.expParser.eval(res.properties.osProfile.adminUsername) ); 
+        }
+        if(res.properties.hardwareProfile.vmSize) {
+          extraData.size = utils.encode( this.expParser.eval(res.properties.hardwareProfile.vmSize) ); 
+        } 
+        if(res.properties.storageProfile.imageReference) {
+          extraData.image = "";
+          if(res.properties.storageProfile.imageReference.publisher) {extraData.image += this.expParser.eval(res.properties.storageProfile.imageReference.publisher);} 
+          if(res.properties.storageProfile.imageReference.offer) {extraData.image += '/' + this.expParser.eval(res.properties.storageProfile.imageReference.offer);} 
+          if(res.properties.storageProfile.imageReference.sku) {extraData.image += '/' + this.expParser.eval(res.properties.storageProfile.imageReference.sku);} 
+        }                     
+      } catch (ex) {
+        console.log('### ArmView: Warn! Error when parsing VM resource details: ', res.name);
+      }
+    }      
+
+    if(_.get(res,'properties.templateLink.uri')){
+      extraData['template-url'] = res.properties.templateLink.uri;
+    }
+
+    // Stick resource node in resulting elements list
+    let cyNode = new CytoscapeNode('nodes');
+    cyNode.data = {
+      id: res.id,
+      name: utils.encode(res.name),
+      img: img,
+      kind: res.kind ? res.kind : '',
+      type: res.type,
+      label: label,
+      location: res.location ? utils.encode(res.location) : '',
+      extra: extraData
+    };
+
+    return cyNode;
+  }
+
+
+  //
   // Main function to parse a resource, this will recurse into nested resources
   //
   private async processResources(resources: Resource[], parameterJSON?: string) {
     const processPromises = resources.map(async(res) => {
       try {
-        let extraData: any;
-        extraData = {};
-  
-        // Label is the last part of the resource type
-        let label = res.type.replace(/^.*\//i, '');
-  
-        // Workout which icon image to use, no way to catch missing images client side so we do it here
-        let img = 'default.svg';
-        let iconExists = require('fs').existsSync(path.join(this.iconBasePath, `/${res.type}.svg`));
-        if(iconExists) {
-          img = `${res.type}.svg`;
-        } else {
-          // API Management has about 7 million sub-resources, rather than include them all, we assign a custom default for APIM
-          if(res.type.includes('apimanagement')) {
-            img = 'microsoft.apimanagement/default.svg';
-          } else {
-            // Send telemetry on missing icons, this helps me narrow down which ones to add in the future
-            let fileHash = "";
-            if(this.editor) {
-              fileHash = this.editor.document.fileName;
-              fileHash = utils.hashCode(this.editor.document.fileName);
-            }
-            // Send resource type, FQN and a hashed/obscured version of the filename
-            if(this.reporter) this.reporter.sendTelemetryEvent('missingIcon', { 'resourceType': res.type, 'resourceFQN': res.fqn, 'fileHash': fileHash });
-
-            // Use default icon as nothing else found
-            img = 'default.svg';
-          }
-        }
-        
-        // App Services - Sites & plans can have different icons depending on 'kind'
-        if(res.kind && res.type.includes('microsoft.web')) {
-          if(res.kind.toLowerCase().includes('api')) img = `microsoft.web/apiapp.svg`;
-          if(res.kind.toLowerCase().includes('mobile')) img = `microsoft.web/mobileapp.svg`;
-          if(res.kind.toLowerCase().includes('function')) img = `microsoft.web/functionapp.svg`;
-          if(res.kind.toLowerCase().includes('linux')) img = `microsoft.web/serverfarmslinux.svg`;
-        }
-        
-        // Event grid subscriptions can sit under many resource types
-        if(res.type.includes('eventsubscriptions')) {
-          img = `microsoft.eventgrid/eventsubscriptions.svg`;
-        }
-
-        // Linux VM icon with Tux :)
-        if(res.type.includes('microsoft.compute') && res.properties && res.properties.osProfile) {
-          if(res.properties.osProfile.linuxConfiguration) {
-            img = `microsoft.compute/virtualmachines-linux.svg`;
-          }
-        }
-  
         // Handle linked templates, oh boy, this is a whole world of pain
         let linkedNodeCount: number = -1;
         if(res.type == 'microsoft.resources/deployments' && res.properties && res.properties.templateLink && res.properties.templateLink.uri) {
@@ -384,7 +510,6 @@ export default class ARMParser {
           if(match) {
             linkUri = match[1];
           }
-          extraData['template-url'] = linkUri;
 
           // OK let's try to handle linked templates shall we? O_O
           console.log("### ArmView: Processing linked template: " + linkUri);
@@ -491,6 +616,7 @@ export default class ARMParser {
           if(subTemplate) {
             const mergedParameterJson = this.mergeWithGlobalParameters(res.properties.parameters, parameterJSON);
             linkedNodeCount = await this.parseLinkedOrNested(res, subTemplate, mergedParameterJson);
+            this.executeSecondPass();
           } else {
             console.log("### ArmView: Warn! Unable to locate linked template");
           }
@@ -508,88 +634,14 @@ export default class ARMParser {
           if(subTemplate) {
             const mergedParameterJson = this.mergeWithGlobalParameters(res.properties.parameters, parameterJSON);
             linkedNodeCount = await this.parseLinkedOrNested(res, subTemplate, mergedParameterJson);
+            this.executeSecondPass();
           } else {
             console.log("### ArmView: Warn! Unable to parse nested template");
           }
         }
 
-        // Process resource tags, can be objects or strings
-        if(res.tags && typeof res.tags == "object") {
-          Object.keys(res.tags).forEach(tagname => {
-            let tagval = res.tags[tagname];
-            //tagval = utils.encode(this._evalExpression(tagval));
-            // Some crazy people put expressions in their tag names, I mean really...
-            tagname = utils.encode(this.expParser.eval(tagname));
-
-            // Handle special case for displayName tag, which some people use. I dunno
-            if(tagname.toLowerCase() == 'displayname') {
-              res.name = tagval;
-            }
-
-            // Store tags in 'extra' node data
-            extraData['Tag ' + tagname] = tagval;  
-          });
-        } else if(res.tags && typeof res.tags == "string") {
-          extraData['tags'] = res.tags; 
-        }
-
-        // Process SKU
-        if(res.sku && typeof res.sku == "object") {
-          Object.keys(res.sku).forEach(skuname => {
-            if(res.sku) {
-              let skuval = res.sku[skuname];
-              //skuval = utils.encode(this._evalExpression(skuval));
-              //skuname = utils.encode(this._evalExpression(skuname));
-
-              // Store SKU details in 'extra' node data
-              extraData['SKU ' + skuname] = skuval;  
-            }
-          });
-        } else if(res.sku && typeof res.sku == "string") {
-          extraData['sku'] = res.sku; 
-        }
-
-        // Virtual Machines - Try and grab some of the VM info
-        if(res.type == 'microsoft.compute/virtualmachines') {
-          try {
-            if(res.properties.osProfile.linuxConfiguration) {
-              extraData.os = 'Linux';          
-            } 
-            if(res.properties.osProfile.windowsConfiguration) {
-              extraData.os = 'Windows';          
-            }  
-            if(res.properties.osProfile.computerName) {
-              extraData.hostname = utils.encode( this.expParser.eval(res.properties.osProfile.computerName) );
-            }                              
-            if(res.properties.osProfile.adminUsername) {
-              extraData.user = utils.encode( this.expParser.eval(res.properties.osProfile.adminUsername) ); 
-            }
-            if(res.properties.hardwareProfile.vmSize) {
-              extraData.size = utils.encode( this.expParser.eval(res.properties.hardwareProfile.vmSize) ); 
-            } 
-            if(res.properties.storageProfile.imageReference) {
-              extraData.image = "";
-              if(res.properties.storageProfile.imageReference.publisher) {extraData.image += this.expParser.eval(res.properties.storageProfile.imageReference.publisher);} 
-              if(res.properties.storageProfile.imageReference.offer) {extraData.image += '/' + this.expParser.eval(res.properties.storageProfile.imageReference.offer);} 
-              if(res.properties.storageProfile.imageReference.sku) {extraData.image += '/' + this.expParser.eval(res.properties.storageProfile.imageReference.sku);} 
-            }                     
-          } catch (ex) {
-            console.log('### ArmView: Warn! Error when parsing VM resource details: ', res.name);
-          }
-        }      
-
-        // Stick resource node in resulting elements list
-        let cyNode = new CytoscapeNode('nodes');
-        cyNode.data = {
-          id: res.id,
-          name: utils.encode(res.name),
-          img: img,
-          kind: res.kind ? res.kind : '',
-          type: res.type,
-          label: label,
-          location: res.location ? utils.encode(res.location) : '',
-          extra: extraData
-        };
+        
+        const cyNode = await this.resourceToElement(res);
         this.elements.push(cyNode);
   
         // Serious business - find the dependencies between resources
@@ -636,6 +688,9 @@ export default class ARMParser {
       let subParser = new ARMParser(this.iconBasePath, res.name, this.reporter, this.editor, this.cache); 
       try {
         let linkRes = await subParser.parse(subTemplate, parameterJSON);
+
+        // Assign the resolved outputs back to the resource
+        res.outputs = subParser.template.outputs;
         
         // This means we successfully resolved/loaded the linked deployment
         if(linkRes.length == 0) {
