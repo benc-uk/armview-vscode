@@ -327,22 +327,26 @@ export default class ARMParser {
   // After the second pass, some elements might get
   // out of sync. Find and update those elements
   //
-  private syncElements(){
-    for(let i = 0; i < this.elements.length; i +=1 ){
-      // const data = this.elements[i].data as CytoscapeNodeData;
-      // const resource = this.findResource(data.name);
-      // TODO
-    }
+  private async syncElements(){
+    this.elements = await Promise.all(this.elements.map(async(elem) => {
+      const data = elem.data as CytoscapeNodeData;
+      if(data.name){
+        const resource = this.findResource(data.name);
+        if(!resource) return elem;
+        return this.resourceToElement(resource);
+      }
+      return elem;
+    }));
   }
 
   //
   // Second pass
   //
-  private executeSecondPass(){
+  private async executeSecondPass(){
     this.expParser.secondPass = true;
     this.expParser.template = this.template;
     this.evalAll();
-    this.syncElements();
+    await this.syncElements();
   }
 
   //
@@ -616,7 +620,7 @@ export default class ARMParser {
           if(subTemplate) {
             const mergedParameterJson = this.mergeWithGlobalParameters(res.properties.parameters, parameterJSON);
             linkedNodeCount = await this.parseLinkedOrNested(res, subTemplate, mergedParameterJson);
-            this.executeSecondPass();
+            await this.executeSecondPass();
           } else {
             console.log("### ArmView: Warn! Unable to locate linked template");
           }
@@ -634,7 +638,7 @@ export default class ARMParser {
           if(subTemplate) {
             const mergedParameterJson = this.mergeWithGlobalParameters(res.properties.parameters, parameterJSON);
             linkedNodeCount = await this.parseLinkedOrNested(res, subTemplate, mergedParameterJson);
-            this.executeSecondPass();
+            await this.executeSecondPass();
           } else {
             console.log("### ArmView: Warn! Unable to parse nested template");
           }
