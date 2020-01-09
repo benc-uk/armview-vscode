@@ -68,6 +68,8 @@ export default class ARMExpressionParser {
     // Catch some rare errors where non-strings are parsed
     if(typeof exp != "string")
       return exp;
+    if(exp.startsWith('{{'))
+      return exp;
 
     // Precheck called on top level calls to _evalExpression
     if(check) {
