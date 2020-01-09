@@ -205,4 +205,9 @@ describe('Test: reference.json', function () {
     expect(obj).to.not.be.undefined;
     expect(obj.data.type).to.eq('microsoft.web/sites')
   });
+  it('Resolve outputs of linked templates', async function () {
+    const obj = _.find(res,{data:{name:'obj6'}})
+    expect(obj).to.not.be.undefined;
+    expect(obj.data.type).to.eq('microsoft.web/sites/data')
+  });
 });

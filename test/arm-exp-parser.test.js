@@ -27,5 +27,12 @@ describe('ARMExpressionParser', () => {
       expect(match[2]).to.eq("'arg'");
       expect(match[3]).to.eq('.attr');
     })
+    it('should extract func names and params with []/something', () => {
+      const exp = "foo-[pending_reference('arg').attr]/bar"
+      const match = parser.funcCallWithPropertyExtractor(exp);
+      expect(match[1]).to.eq('pending_reference');
+      expect(match[2]).to.eq("'arg'");
+      expect(match[3]).to.eq('.attr');
+    })
   })
 })

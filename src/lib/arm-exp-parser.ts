@@ -54,11 +54,10 @@ export default class ARMExpressionParser {
   }
 
   private funcCallWithPropertyExtractor(exp: string): any{
-    // Remove surrounding [] 
-    if(exp[0] === '[' && exp[exp.length-1] === ']') {
-      exp = exp.slice(1,exp.length-1);
-    }
-    return exp.match(/(\w+)\((.*)\)((?:\.|\[).*)/);
+    // Remove surrounding [] if present
+    const matches = exp.match(/\[(.*)\](.*)/);
+    if(!matches) return exp.match(/(\w+)\((.*)\)((?:\.|\[).*)/);
+    return matches[1].match(/(\w+)\((.*)\)((?:\.|\[).*)/);
   }
 
   //
@@ -114,7 +113,10 @@ export default class ARMExpressionParser {
 
       // Will be resolved in second pass
       if(funcName == 'pending_reference' && this.secondPass) {
-        return this.funcReferenceParam(this.eval(funcParams), funcProps);
+        // e.g. 'foo/[pending_reference('arg').prop]/bar'
+        // should resolve to 'foo/something/bar'
+        const result = this.funcReferenceParam(this.eval(funcParams), funcProps);
+        return exp.replace(`[${match[0]}]`,result);
       }
     }
 

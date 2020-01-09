@@ -36,6 +36,10 @@
     {
       "name": "obj5",
       "type": "[reference('obj4').outputs.web1Type.value]"
+    },
+    {
+      "name": "obj6",
+      "type": "[concat(reference('obj4').outputs.web1Type.value,'/data')]"
     }
   ]
 }
