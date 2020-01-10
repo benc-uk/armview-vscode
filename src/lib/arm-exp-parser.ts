@@ -341,7 +341,7 @@ export default class ARMExpressionParser {
   // Emulate the ARM function `uniqueString()` 
   //
   private funcUniqueString(baseStr: string): string {
-    let hash = utils.hashCode(baseStr);
+    let hash = utils.hashCode(baseStr || 'EMPTY');
     return Buffer.from(`${hash}`).toString('base64').substr(0, 14);
   }
 
