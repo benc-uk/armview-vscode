@@ -96,7 +96,6 @@ export default class ARMParser {
     if(this.error) throw this.error;
     console.log(`### ArmView: Parsing complete, found ${this.elements.length} elements in template ${this.name}`);
 
-    // return result elements
     return this.elements;
   }
 
@@ -500,7 +499,7 @@ export default class ARMParser {
   // Main function to parse a resource, this will recurse into nested resources
   //
   private async processResources(resources: Resource[], parameterJSON?: string) {
-    const processPromises = resources.map(async(res) => {
+    const processPromises = resources.map(async(res,i) => {
       try {
         // Handle linked templates, oh boy, this is a whole world of pain
         let linkedNodeCount: number = -1;
@@ -620,6 +619,7 @@ export default class ARMParser {
           if(subTemplate) {
             const mergedParameterJson = this.mergeWithGlobalParameters(res.properties.parameters, parameterJSON);
             linkedNodeCount = await this.parseLinkedOrNested(res, subTemplate, mergedParameterJson);
+            resources[i] = res;
             await this.executeSecondPass();
           } else {
             console.log("### ArmView: Warn! Unable to locate linked template");
@@ -638,6 +638,7 @@ export default class ARMParser {
           if(subTemplate) {
             const mergedParameterJson = this.mergeWithGlobalParameters(res.properties.parameters, parameterJSON);
             linkedNodeCount = await this.parseLinkedOrNested(res, subTemplate, mergedParameterJson);
+            resources[i] = res;
             await this.executeSecondPass();
           } else {
             console.log("### ArmView: Warn! Unable to parse nested template");
