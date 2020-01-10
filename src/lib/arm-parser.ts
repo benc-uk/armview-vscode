@@ -103,7 +103,7 @@ export default class ARMParser {
   // Resolve all the variable-likes
   //
   private evalAll(){
-    const flatTemplate:any = flat.flatten(this.template);
+    const flatTemplate: any = flat.flatten(this.template);
     Object.keys(flatTemplate).forEach((k) => {
       flatTemplate[k] = this.expParser.eval(flatTemplate[k]);
     });
@@ -132,17 +132,17 @@ export default class ARMParser {
       // This is a crude attempt to cope with them by simply stripping the newlines if we find any
 
       // Find all strings in double quotes (thankfully JSON only allows double quotes)
-      let re = /(".*?")/gims;
+      const re = /(".*?")/gims;
       let match;
       while ((match = re.exec(content)) != null) {
-        let string = match[1];
+        const string = match[1];
         // Only work on strings that include a newline (or \n\r)
         if(string.includes('\n')) {
           console.log(`### ArmView: Found a multi-line string in your template at offset ${match.index}. Attempting to rectify to valid JSON`);
           
           // Mangle the content ripping the matched string out
-          let front = content.substr(0, match.index);
-          let back =  content.substr(match.index+string.length, content.length);
+          const front = content.substr(0, match.index);
+          const back =  content.substr(match.index+string.length, content.length);
           // Brute force removal!
           // We preserve whitespace, but not sure if it's correct. We're outside the JSON spec!
           let cleanString = string.replace(/\n/g, ''); //string.replace(/\s*\n\s*/g, ' ');
@@ -189,7 +189,7 @@ export default class ARMParser {
         // Resolve and eval resource tags
         if(res.tags && typeof res.tags == "object") {
           Object.keys(res.tags).forEach(tagname => {
-            let tagval = res.tags[tagname].toString();
+            const tagval = res.tags[tagname].toString();
             res.tags[tagname] = this.expParser.eval(tagval, true);
           });
         } 
@@ -198,7 +198,7 @@ export default class ARMParser {
         if(res.sku && typeof res.sku == "object") {
           Object.keys(res.sku).forEach(propName => {
             if(res.sku) {
-              let propVal = res.sku[propName].toString();
+              const propVal = res.sku[propName].toString();
               res.sku[propName] = this.expParser.eval(propVal, true);
             }
           });
@@ -252,9 +252,9 @@ export default class ARMParser {
     this.template.parameters = JSON.parse(this.mergeWithGlobalParameters(this.template.parameters, parameterJSON)).parameters;
 
     // Loop over all parameters
-    for(let param in paramObject.parameters) {
+    for(const param in paramObject.parameters) {
       try {
-        let pVal = paramObject.parameters[param].value;
+        const pVal = paramObject.parameters[param].value;
         // pVal can be empty or undefined
         if(pVal !== "" && pVal) {
           // A cheap trick to force value into `defaultValue` to be picked up later
@@ -266,7 +266,7 @@ export default class ARMParser {
     }
 
     // Copy over the values to defaultValues
-    for(let pKey in this.template.parameters) {
+    for(const pKey in this.template.parameters) {
       if(this.template.parameters[pKey].value){
         this.template.parameters[pKey].defaultValue = this.template.parameters[pKey].value;
       }
@@ -351,10 +351,10 @@ export default class ARMParser {
   //
   // Choose image
   //
-  private chooseImage(res:Resource):string {
+  private chooseImage(res: Resource): string {
     // Workout which icon image to use, no way to catch missing images client side so we do it here
     let img = 'default.svg';
-    let iconExists = require('fs').existsSync(path.join(this.iconBasePath, `/${res.type}.svg`));
+    const iconExists = require('fs').existsSync(path.join(this.iconBasePath, `/${res.type}.svg`));
     if(iconExists) {
       img = `${res.type}.svg`;
     } else {
@@ -400,19 +400,18 @@ export default class ARMParser {
   //
   // Resource to element
   //
-  private async resourceToElement(res:Resource){
-    let extraData: any;
-    extraData = {};
+  private async resourceToElement(res: Resource){
+    const extraData: any = {};
 
     // Workout which icon image to use, no way to catch missing images client side so we do it here
     const img = this.chooseImage(res);
 
     // Label is the last part of the resource type
-    let label = res.type.replace(/^.*\//i, '');
+    const label = res.type.replace(/^.*\//i, '');
             // Process resource tags, can be objects or strings
     if(res.tags && typeof res.tags == "object") {
       Object.keys(res.tags).forEach(tagname => {
-        let tagval = res.tags[tagname];
+        const tagval = res.tags[tagname];
         //tagval = utils.encode(this._evalExpression(tagval));
         // Some crazy people put expressions in their tag names, I mean really...
         tagname = utils.encode(this.expParser.eval(tagname));
@@ -433,7 +432,7 @@ export default class ARMParser {
     if(res.sku && typeof res.sku == "object") {
       Object.keys(res.sku).forEach(skuname => {
         if(res.sku) {
-          let skuval = res.sku[skuname];
+          const skuval = res.sku[skuname];
           //skuval = utils.encode(this._evalExpression(skuval));
           //skuname = utils.encode(this._evalExpression(skuname));
 
@@ -479,7 +478,7 @@ export default class ARMParser {
     }
 
     // Stick resource node in resulting elements list
-    let cyNode = new CytoscapeNode('nodes');
+    const cyNode = new CytoscapeNode('nodes');
     cyNode.data = {
       id: res.id,
       name: utils.encode(res.name),
@@ -502,14 +501,14 @@ export default class ARMParser {
     const processPromises = resources.map(async(res,i) => {
       try {
         // Handle linked templates, oh boy, this is a whole world of pain
-        let linkedNodeCount: number = -1;
+        let linkedNodeCount = -1;
         if(res.type == 'microsoft.resources/deployments' && res.properties && res.properties.templateLink && res.properties.templateLink.uri) {
           let linkUri = res.properties.templateLink.uri;
           linkUri = this.expParser.eval(linkUri, true);
           res.properties.parameters = this.resolveParameters(res.properties.parameters);
 
           // Strip off everything weird after file extension, i.e. after any ? or { characters we find
-          let match = linkUri.match(/(.*?\.\w*?)($|\?|{)/);
+          const match = linkUri.match(/(.*?\.\w*?)($|\?|{)/);
           if(match) {
             linkUri = match[1];
           }
@@ -517,8 +516,8 @@ export default class ARMParser {
           // OK let's try to handle linked templates shall we? O_O
           console.log("### ArmView: Processing linked template: " + linkUri);
            
-          let subTemplate: string = "";
-          var cacheResult = undefined;
+          let subTemplate = "";
+          let cacheResult = undefined;
           try {
             if(this.cache) {
               cacheResult = this.cache.get<string>(linkUri);
@@ -528,13 +527,13 @@ export default class ARMParser {
               
               // Use the isomorphic fetch to get the content of the URL, (Note. was using axios but that had bugs)
               // As fetch has no timeout we use a wrapper function and a 5sec timeout
-              let fetchResult = await utils.timeoutPromise(5000, fetch(linkUri), "HTTP network timeout");
+              const fetchResult = await utils.timeoutPromise(5000, fetch(linkUri), "HTTP network timeout");
               if (!(fetchResult.status >= 200 && fetchResult.status < 300)) {
                 throw new Error(`Fetch failed, status code: ${fetchResult.status}`);
               }
               
               // Traps those cases where a 200 + HTML page masks an error or 404
-              let contentType = fetchResult.headers.get("Content-Type");
+              const contentType = fetchResult.headers.get("Content-Type");
               if(contentType && contentType.includes('text/html')) {
                 throw new Error("Returned data wasn't JSON!");
               }
@@ -562,26 +561,26 @@ export default class ARMParser {
             // This crazy code tries to search the loaded workspace for the file, two different ways
             if(this.editor) {
               // Why do we do this? It lets us use this class without VS Code
-              let vscode = await import('vscode'); // await on import! Voodoo!
+              const vscode = await import('vscode'); // await on import! Voodoo!
 
               // File name only of linked template, we'll need this a LOT
-              let fileName = path.basename(linkUri);
+              const fileName = path.basename(linkUri);
 
               // Try to guess directory it is in (don't worry if it's wrong, it might be)
-              let linkParts = linkUri.split('/');
-              let fileParentDir = linkParts[linkParts.length - 2];
+              const linkParts = linkUri.split('/');
+              const fileParentDir = linkParts[linkParts.length - 2];
                            
               // Try loading the from the workspace - assume file is in `fileParentDir` sub-folder
               // Most people store templates in a sub-folder and that sub-folder is included in the URL
               if(fileParentDir && fileName) { 
                 // wsPath is local VS Code folder where the open editor doc is located
-                let wsPath = path.dirname(this.editor.document.uri.toString());
-                let filePath = `${wsPath}/${fileParentDir}/${fileName}`;
+                const wsPath = path.dirname(this.editor.document.uri.toString());
+                const filePath = `${wsPath}/${fileParentDir}/${fileName}`;
                 console.log(`### ArmView: Will try to load file: ${filePath}`);
                 
                 // Let's give it a try and see if it's there and loads
                 try {
-                  let fileContent = await vscode.workspace.fs.readFile(vscode.Uri.parse(`${wsPath}/${fileParentDir}/${fileName}`));
+                  const fileContent = await vscode.workspace.fs.readFile(vscode.Uri.parse(`${wsPath}/${fileParentDir}/${fileName}`));
                   subTemplate = fileContent.toString();
                 } catch(err) {
                   console.log(`### ArmView: failed to load ${filePath}`);
@@ -589,10 +588,10 @@ export default class ARMParser {
               }
 
               // Direct access didn't work, now try a glob search in workspace
-              let wsLocalFile = path.basename(vscode.workspace.asRelativePath(this.editor.document.uri));
+              const wsLocalFile = path.basename(vscode.workspace.asRelativePath(this.editor.document.uri));
               // Only search if prev step failed and the filename we're looking for is NOT the same as the main template
               if(!subTemplate && fileName && wsLocalFile != fileName) {
-                let wsLocalDir = path.dirname(vscode.workspace.asRelativePath(this.editor.document.uri)).split(path.sep).pop();
+                const wsLocalDir = path.dirname(vscode.workspace.asRelativePath(this.editor.document.uri)).split(path.sep).pop();
 
                 let search = `**/${wsLocalDir}/**/${fileName}`;
                 if(wsLocalDir == '.') search = `**/${fileName}`; // Handle case where folder is at root of ws
@@ -605,7 +604,7 @@ export default class ARMParser {
 
                   if(searchResult && searchResult.length > 0) {
                     console.log(`### ArmView: Found & using file: ${searchResult[0]}`);
-                    let fileContent = await vscode.workspace.fs.readFile(searchResult[0]);
+                    const fileContent = await vscode.workspace.fs.readFile(searchResult[0]);
                     subTemplate = fileContent.toString();
                   }
                 } catch(err) {
@@ -662,7 +661,7 @@ export default class ARMParser {
             }
             
             // Find resource by eval'ed dependsOn string
-            let depres = this.findResource(dep);
+            const depres = this.findResource(dep);
             // Then create a link between this resource and the found dependency 
             if(depres) this.addLink(res, depres);
           });          
@@ -683,7 +682,7 @@ export default class ARMParser {
   // Create a link element between resources
   //
   private addLink(r1: any, r2: any) {
-    let edge = new CytoscapeNode('edges');
+    const edge = new CytoscapeNode('edges');
     edge.data = {
       id: `${r1.id}_${r2.id}`,
       source: r1.id,
@@ -695,9 +694,9 @@ export default class ARMParser {
   private async parseLinkedOrNested(res: any, subTemplate: string, parameterJSON?: string): Promise<number> {   
     // If we've got some actual data, means we read the linked file somehow
     if(subTemplate) {
-      let subParser = new ARMParser(this.iconBasePath, res.name, this.reporter, this.editor, this.cache); 
+      const subParser = new ARMParser(this.iconBasePath, res.name, this.reporter, this.editor, this.cache); 
       try {
-        let linkRes = await subParser.parse(subTemplate, parameterJSON);
+        const linkRes = await subParser.parse(subTemplate, parameterJSON);
 
         // Assign the resolved outputs back to the resource
         res.outputs = subParser.template.outputs;
@@ -707,7 +706,7 @@ export default class ARMParser {
           console.log("### ArmView: Warn! Linked template contained no resources!");
         }
         
-        for(let subres of linkRes) {
+        for(const subres of linkRes) {
           if(subres) {
             // !IMPORTANT! Only set the parent if it's not already set
             // Otherwise we overwrite the value when working with multiple levels deep of linkage
@@ -751,7 +750,7 @@ export default class ARMParser {
     if(typeof(value) !== 'string') return [];
     // TODO: The following is not regular grammer so it cannot be parsed with regex
     // [concat(reference('n1').name,'-',reference('n2').name,'-',reference('n3').name)]
-    const regex:RegExp = /reference\((.*)\)/;
+    const regex = /reference\((.*)\)/;
     const match = value.match(regex);
     if(!match) return [];
     return [this.expParser.eval(match[1])];
@@ -762,9 +761,9 @@ export default class ARMParser {
   //
   private referencesToDependsOn(){
     this.template.resources.forEach((res) => {
-      const flatRes:any = flat.flatten(res);
+      const flatRes: any = flat.flatten(res);
       res.dependsOn = Object.keys(flatRes)
-        .reduce((acc: Array<string>, k:string) => {
+        .reduce((acc: Array<string>, k: string) => {
           return acc.concat(this.extractDependency(flatRes[k]));
         },res.dependsOn || []);
       res.dependsOn.sort();

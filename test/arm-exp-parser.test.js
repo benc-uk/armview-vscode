@@ -6,7 +6,7 @@ const chai = require('chai');
 const expect = chai.expect;
 chai.use(require('chai-subset'));
 
-console.log = function (s) { }
+console.log = () => null
 
 describe('ARMExpressionParser', () => {
   describe('funcCallWithPropertyExtractor', () => {

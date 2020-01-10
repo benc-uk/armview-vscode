@@ -101,8 +101,8 @@
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -p ./",
-		"lint": "tslint -p ./",
-		"lint:fix": "tslint -p ./ --fix",
+		"lint": "eslint ./src/**/*.[tj]s ./test/**/*.[tj]s",
+		"lint:fix": "eslint ./src/**/*.[tj]s ./test/**/*.[tj]s --fix",
 		"watch": "tsc -w -p ./",
 		"test": "mocha --timeout 10000 test/reference.test.js test/arm-parser.test.js test/arm-exp-parser.test.js",
 		"test:reference": "mocha --timeout 10000 test/reference.test.js",
@@ -128,12 +128,14 @@
 		"@types/mocha": "^5.2.7",
 		"@types/node": "^10.5.2",
 		"@types/vscode": "^1.30.0",
+		"@typescript-eslint/eslint-plugin": "^2.15.0",
+		"@typescript-eslint/parser": "^2.15.0",
 		"chai": "^4.2.0",
 		"chai-subset": "^1.6.0",
+		"eslint": "^6.8.0",
 		"jsonlint": "^1.6.3",
 		"mocha": "^6.2.0",
 		"ts-loader": "^6.1.2",
-		"tslint": "^5.16.0",
 		"typescript": "^3.5.1"
 	}
 }

@@ -11,7 +11,7 @@ export function hashCode(str: string): any {
   // key.update(str, 'utf8', 'hex');
   // return key.final('hex');
 
-  var hash = 0, i, chr;
+  let hash = 0, i, chr;
   if (str.length === 0) return hash;
   for (i = 0; i < str.length; i++) {
     chr   = str.charCodeAt(i);
@@ -22,7 +22,7 @@ export function hashCode(str: string): any {
 }
 
 // Custom string encoder which also encodes single quotes
-export function encode(str: string) {
+export function encode(str: string): string {
   let temp = encodeURIComponent(str);
   temp = temp.replace(/'/g, '%27');
   return temp;

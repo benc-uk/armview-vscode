@@ -10,15 +10,15 @@ unzip master.zip
 rm master.zip
 */
 
-console.log = function(s) {}
+console.log = () => null
 
-var parser = new ARMParser('', 'main', null, null);
+const parser = new ARMParser('', 'main', null, null);
 
 // Run ARMParser on given filename
 async function testTemplate(filename) {
-	let template = fs.readFileSync(filename);
+	const template = fs.readFileSync(filename);
   try {
-    let result = await parser.parse(template.toString());    
+    const result = await parser.parse(template.toString());    
     if(result)
       return
   } catch(err) {
@@ -28,8 +28,7 @@ async function testTemplate(filename) {
 
 // Recursively search down directory tree
 function walkSync(dir, filelist, filter) {
-  var fs = fs || require('fs'),
-  files = fs.readdirSync(dir);
+  const files = fs.readdirSync(dir);
   filelist = filelist || [];
   files.forEach(function(file) {
     if (fs.statSync(dir + file).isDirectory()) {
@@ -53,7 +52,7 @@ files = walkSync('./test/azure-quickstart-templates-master/', files, 'azuredeplo
 files.forEach(function(file) {
   describe('Test: ' + file, function() {
     it('Parse file', async function() {
-      let err = await testTemplate(file);
+      const err = await testTemplate(file);
       if(err)
         fail(err);
     })

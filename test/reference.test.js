@@ -7,14 +7,14 @@ const chai = require('chai');
 const expect = chai.expect;
 chai.use(require('chai-subset'));
 
-console.log = function (s) { }
+console.log = () => null
 
-var parser = new ARMParser('', 'main', null, null);
+const parser = new ARMParser('', 'main', null, null);
 
 // Run ARMParser on given filename
 async function loadTemplate(filename, parameterFilename) {
-  let template = fs.readFileSync(filename);
-  let parameters = parameterFilename && fs.readFileSync(parameterFilename);
+  const template = fs.readFileSync(filename);
+  const parameters = parameterFilename && fs.readFileSync(parameterFilename);
   try {
     return await parser.parse(template.toString(), parameters && parameters.toString());
   } catch (err) {
@@ -33,7 +33,7 @@ describe('Test: basic.json', function () {
   it('Validate nodes & edges', async function () {
     expect(res).to.have.lengthOf(8);
     let edgeCount = 0;
-    for (let node of res) {
+    for (const node of res) {
       if (node.group == 'nodes') continue;
       expect(node.data).to.have.nested.property('id');
       expect(node.data).to.have.nested.property('source');

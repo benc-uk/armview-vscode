@@ -6,7 +6,7 @@ const chai = require('chai');
 const expect = chai.expect;
 chai.use(require('chai-subset'));
 
-console.log = function (s) { }
+console.log = () => null
 
 describe('ARMParser', () => {
   describe('mergeWithGlobalParameters', () => {
@@ -128,7 +128,7 @@ describe('ARMParser', () => {
           name: 'n1',
           someKey1: "[reference('n2')]",
           someKey2: "[reference('n3')]",
-          dependsOn: ['n2','n3']
+          dependsOn: ['n2', 'n3']
         },
         {
           name: 'n2',
@@ -161,7 +161,7 @@ describe('ARMParser', () => {
         {
           name: 'n1',
           someKey1: "[reference('n2')]",
-          dependsOn: ['n2','n3']
+          dependsOn: ['n2', 'n3']
         },
         {
           name: 'n2',

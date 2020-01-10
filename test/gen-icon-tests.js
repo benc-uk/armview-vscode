@@ -1,8 +1,7 @@
 const fs = require('fs')
 
 function walkSync(dir, filelist) {
-  var fs = fs || require('fs'),
-      files = fs.readdirSync(dir);
+  const files = fs.readdirSync(dir);
   filelist = filelist || [];
   files.forEach(function(file) {
     if (fs.statSync(dir + file).isDirectory()) {
@@ -36,7 +35,7 @@ for(let resType of list) {
   resType = resType.replace(BASE_DIR, '');
   resType = resType.replace('.svg', '');
 
-  let type = resType.split('/')[0];
+  const type = resType.split('/')[0];
 
   if(resType.includes('deployments')) continue;
 

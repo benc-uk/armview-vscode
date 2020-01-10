@@ -39,7 +39,7 @@ export class CytoscapeNode {
 
   constructor(type: CytoscapeNodeTypes) {
     this.group = type;
-    this.data = <CytoscapeNodeData>{};
+    this.data = {} as CytoscapeNodeData;
   }
 }
 

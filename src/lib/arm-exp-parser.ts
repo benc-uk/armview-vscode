@@ -10,6 +10,7 @@ import * as utils from './utils';
 import { Template } from './arm-parser-types';
 import * as fs from 'fs';
 import * as flat from 'flat';
+const uuidv5 = require('uuid/v5');
 
 export default class ARMExpressionParser {
   template: Template;
@@ -23,7 +24,7 @@ export default class ARMExpressionParser {
     this.secondPass = false;
   }
 
-  public eval(exp: string, check: boolean = false): any {
+  public eval(exp: string, check = false): any {
     // TODO: Make sure that non string values are never passed in the first place
     if(typeof(exp) !== 'string') return exp;
 
@@ -59,7 +60,7 @@ export default class ARMExpressionParser {
     const matches = exp.match(/\[(.*)\](.*)/);
 
     // TODO: Have a proper CFG parser
-    const splitInThree = (str: string) => {
+    const splitInThree = (str: string): string[] => {
       // return str.match(/(\w+)\((.*)\)((?:\.|\[).*)/);
       const openIndex = str.indexOf('(');
       let closeIndex = null;
@@ -91,7 +92,7 @@ export default class ARMExpressionParser {
   // Main ARM expression parser, attempts to evaluate and resolve ARM expressions 
   // Most of the time it will evaluate down to a string, but a number can be returned also
   //
-  public evalHelper(exp: string, check: boolean = false): any {
+  public evalHelper(exp: string, check = false): any {
     // Catch some rare errors where non-strings are parsed
     if(typeof exp != "string")
       return exp;
@@ -100,7 +101,7 @@ export default class ARMExpressionParser {
 
     // Precheck called on top level calls to _evalExpression
     if(check) {
-      let match = exp.match(/^\[(.*)\]$/);
+      const match = exp.match(/^\[(.*)\]$/);
       if(match) {
         exp = match[1];
       } else {
@@ -114,8 +115,8 @@ export default class ARMExpressionParser {
     let match = this.funcCallWithPropertyExtractor(exp);
     let funcProps = undefined;
     if(match) {
-      let funcName = match[1];
-      let funcParams = match[2];
+      const funcName = match[1];
+      const funcParams = match[2];
       funcProps = match[3];
 
       // Catch some special cases, with referenced properties, e.g. resourceGroup().location
@@ -157,8 +158,8 @@ export default class ARMExpressionParser {
     // For historic reasons we treat these separate and I don't want to mess with it, as it works
     match = exp.match(/(\w+)\((.*)\)/);
     if(match) {
-      let funcName = match[1].toLowerCase();
-      let funcParams = match[2];
+      const funcName = match[1].toLowerCase();
+      const funcParams = match[2];
       
       if(funcName == 'variables') {
         return this.funcVarParam(this.template.variables, this.eval(funcParams), '','variables');
@@ -199,7 +200,6 @@ export default class ARMExpressionParser {
         return 0;
       }
       if(funcName == 'guid') {
-        const uuidv5 = require('uuid/v5');
         return uuidv5(this.funcConcat(funcParams, ''), '36c56b01-f9c9-4c7d-9786-0372733417ea');
       }
       if(funcName == 'union'){
@@ -243,7 +243,7 @@ export default class ARMExpressionParser {
     return _.get(resource,propAccessor,'{invalid_reference}');
   }
 
-  private funcVarParam(source: any, varName: string, propAccessor: string,paramOrVal:string) {
+  private funcVarParam(source: any, varName: string, propAccessor: string,paramOrVal: string) {
     const result = this.funcVarParamHelper(source,varName,propAccessor,paramOrVal);
     return result;
   }
@@ -270,7 +270,7 @@ export default class ARMExpressionParser {
     }
 
     if(!source) return "{undefined}";
-    let findKey = Object.keys(source).find(key => varName == key);
+    const findKey = Object.keys(source).find(key => varName == key);
     if(findKey) {
       let val;
       
@@ -299,7 +299,7 @@ export default class ARMExpressionParser {
         // Use lodash get to resolve accessors
         try {
           propAccessor = propAccessor.startsWith('.') ? propAccessor.slice(1) : propAccessor;
-          let evalResult = _.get(val, propAccessor);
+          const evalResult = _.get(val, propAccessor);
 
           if(typeof(evalResult) == 'undefined') {
             console.log(`### ArmView: Warn! Your template contains invalid references: ${varName} -> ${propAccessor}`);
@@ -341,7 +341,7 @@ export default class ARMExpressionParser {
   // Emulate the ARM function `uniqueString()` 
   //
   private funcUniqueString(baseStr: string): string {
-    let hash = utils.hashCode(baseStr || 'EMPTY');
+    const hash = utils.hashCode(baseStr || 'EMPTY');
     return Buffer.from(`${hash}`).toString('base64').substr(0, 14);
   }
 
@@ -349,10 +349,10 @@ export default class ARMExpressionParser {
   // Emulate the ARM function `concat()` 
   //
   private funcConcat(funcParams: string, joinStr: string) {
-    let paramList = this.parseParams(funcParams);
+    const paramList = this.parseParams(funcParams);
 
-    var res = "";
-    for(var p in paramList) {
+    let res = "";
+    for(const p in paramList) {
       let param = paramList[p];
       try {
         param = param.trim();
@@ -379,7 +379,7 @@ export default class ARMExpressionParser {
   // Emulate the ARM function `union()`
   //
   private funcUnion(funcParams: string, funcProps: string) {
-    let paramList = this.parseParams(funcParams);
+    const paramList = this.parseParams(funcParams);
 
     const unionedObj = paramList.reduce((acc,param)=>{
       const evaledParam = this.eval(param);
@@ -388,7 +388,7 @@ export default class ARMExpressionParser {
       if(typeof(parsedJson) === 'string') return acc;
       
       // Eval the contents of the JSON
-      const flatTemplate:any = flat.flatten(parsedJson);
+      const flatTemplate: any = flat.flatten(parsedJson);
       Object.keys(flatTemplate).forEach((k) => {
         flatTemplate[k] = this.eval(flatTemplate[k]);
         flatTemplate[k] = this.tryParseJson(flatTemplate[k]);
@@ -413,12 +413,12 @@ export default class ARMExpressionParser {
   // Emulate the ARM function `uri()` 
   //
   private funcUri(funcParams: string) {
-    let paramList = this.parseParams(funcParams);
+    const paramList = this.parseParams(funcParams);
 
     if(paramList.length == 2) {
       let sep = '';
       let base = this.eval(paramList[0]);
-      let rel = this.eval(paramList[1]);
+      const rel = this.eval(paramList[1]);
       if(!(base.endsWith('/') || rel.startsWith('/'))) sep = '/';
       if(base.endsWith('/') && rel.startsWith('/')) {
         sep = '';
@@ -435,10 +435,10 @@ export default class ARMExpressionParser {
   // Emulate the ARM function `replace()` 
   //
   private funcReplace(funcParams: string) {
-    let paramList = this.parseParams(funcParams);
-    var input = this.eval(paramList[0]);
-    var search = this.eval(paramList[1]);
-    var replace = this.eval(paramList[2]);
+    const paramList = this.parseParams(funcParams);
+    const input = this.eval(paramList[0]);
+    const search = this.eval(paramList[1]);
+    const replace = this.eval(paramList[2]);
     
     return input.replace(new RegExp(search, 'g'), replace);
   } 
@@ -461,10 +461,10 @@ export default class ARMExpressionParser {
   // Emulate the ARM function `substring()` 
   //
   private funcSubstring(funcParams: string) {
-    let paramList = this.parseParams(funcParams);
-    var str = this.eval(paramList[0]);
-    var start = parseInt(this.eval(paramList[1]));
-    var len = parseInt(this.eval(paramList[2]));
+    const paramList = this.parseParams(funcParams);
+    const str = this.eval(paramList[0]);
+    const start = parseInt(this.eval(paramList[1]));
+    const len = parseInt(this.eval(paramList[2]));
     
     return this.eval(str).substring(start, start + len);
   }
@@ -474,22 +474,21 @@ export default class ARMExpressionParser {
   //
   private parseParams(paramString: string) {
     // Parsing non-nested commas in a param list is IMPOSSIBLE WITH A REGEX
-    var depth = 0;
-    var parts = [];
-    var lastSplit = 0;
-    for(var i = 0; i < paramString.length; i++) {
-      let c = paramString.charAt(i); //paramString[i];
+    let depth = 0;
+    const parts = [];
+    let lastSplit = 0;
+    for(let i = 0; i < paramString.length; i++) {
+      const c = paramString.charAt(i); //paramString[i];
       if(c === '(') depth++;
       if(c === ')') depth--;
 
-      let endOfString = i == paramString.length-1;
+      const endOfString = i == paramString.length-1;
       if((c === ',' && depth == 0) || endOfString) {
-        let endPoint = endOfString ? paramString.length : i;
+        const endPoint = endOfString ? paramString.length : i;
         parts.push(paramString.substring(lastSplit, endPoint).trim());
         lastSplit = i + 1;
       }
     }
     return parts;
   }
-  
 }
