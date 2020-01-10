@@ -175,6 +175,9 @@ describe('Test: union.json', function () {
   it('Validate name', async function () {
     expect(res[0].data.name).to.eq('String1String2')
   });
+  it('Should work for', async function () {
+    expect(res[1].data.name).to.eq('String1')
+  });
 });
 
 //

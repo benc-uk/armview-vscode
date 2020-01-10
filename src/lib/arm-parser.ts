@@ -654,6 +654,11 @@ export default class ARMParser {
             
             // Most dependsOn are not static strings, they will be expressions
             dep = this.expParser.eval(dep, true);
+            if(!dep) {
+             // Early exit if not found
+              console.error(`### ArmView: Warn! Unable to find dependency ${dep} for resource ${res.name}`);
+              return;
+            }
             
             // Find resource by eval'ed dependsOn string
             let depres = this.findResource(dep);

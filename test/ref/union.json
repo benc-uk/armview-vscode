@@ -19,16 +19,29 @@
         }
       },
       "type": "object"
+    },
+    "obj3": {
+      "defaultValue": {
+        "kd5":"[parameters('obj1').kd0.kd1]"
+      },
+      "type": "object"
     }
   },
   "variables": {
     "unioned": "[union(parameters('obj1').kd0, parameters('obj2'))]",
-    "fn" : "[concat(variables('unioned').kd1.kd2, variables('unioned').kd3.kd4)]"
+    "fn" : "[concat(variables('unioned').kd1.kd2, variables('unioned').kd3.kd4)]",
+    "v2": "[union(parameters('obj3'),parameters('obj2')).kd5.kd2]"
   },
   "resources": [
     {
+      // String1String2
       "name": "[variables('fn')]",
       "type": "microsoft.web/sites"
-    } 
+    },
+    {
+      // String1
+      "name": "[variables('v2')]",
+      "type": "microsoft.web/sites"
+    }
   ]
 }

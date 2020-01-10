@@ -9,6 +9,7 @@ import * as _ from 'lodash';
 import * as utils from './utils';
 import { Template } from './arm-parser-types';
 import * as fs from 'fs';
+import * as flat from 'flat';
 
 export default class ARMExpressionParser {
   template: Template;
@@ -56,8 +57,34 @@ export default class ARMExpressionParser {
   private funcCallWithPropertyExtractor(exp: string): any{
     // Remove surrounding [] if present
     const matches = exp.match(/\[(.*)\](.*)/);
-    if(!matches) return exp.match(/(\w+)\((.*)\)((?:\.|\[).*)/);
-    return matches[1].match(/(\w+)\((.*)\)((?:\.|\[).*)/);
+
+    // TODO: Have a proper CFG parser
+    const splitInThree = (str: string) => {
+      // return str.match(/(\w+)\((.*)\)((?:\.|\[).*)/);
+      const openIndex = str.indexOf('(');
+      let closeIndex = null;
+      let counter = 0;
+      for(let i = openIndex; i < str.length; i += 1){
+        if(str[i] === '(') counter += 1;
+        if(str[i] === ')') counter -= 1;
+        if(counter === 0) {
+          closeIndex = i;
+          break;
+        }
+      }
+
+      if(!closeIndex) closeIndex = str.length - 1;
+
+      return [
+        str,
+        str.slice(0,openIndex), // Name of the function
+        str.slice(openIndex+1,closeIndex), // All the params
+        str.slice(closeIndex+1) // Prop accessor
+      ];
+    };
+
+    if(!matches) return splitInThree(exp);
+    return splitInThree(matches[1]);
   }
 
   //
@@ -98,11 +125,15 @@ export default class ARMExpressionParser {
       if(funcName == 'deployment' && funcProps == '.name') return '{deployment-name}'; 
 
       if(funcName == 'variables') {
-        return this.funcVarParam(this.template.variables, this.eval(funcParams), funcProps);
+        return this.funcVarParam(this.template.variables, this.eval(funcParams), funcProps,'variables');
       } 
 
       if(funcName == 'parameters') {
-        return this.funcVarParam(this.template.parameters, this.eval(funcParams), funcProps);
+        return this.funcVarParam(this.template.parameters, this.eval(funcParams), funcProps,'parameters');
+      }
+
+      if(funcName == 'union'){
+        return this.funcUnion(funcParams,funcProps);
       }
 
       if(funcName == 'reference') {
@@ -130,10 +161,10 @@ export default class ARMExpressionParser {
       let funcParams = match[2];
       
       if(funcName == 'variables') {
-        return this.funcVarParam(this.template.variables, this.eval(funcParams), '');
+        return this.funcVarParam(this.template.variables, this.eval(funcParams), '','variables');
       }
       if(funcName == 'parameters') {
-        return this.funcVarParam(this.template.parameters, this.eval(funcParams), '');
+        return this.funcVarParam(this.template.parameters, this.eval(funcParams), '','parameters');
       }        
       if(funcName == 'uniquestring') {
         return this.funcUniqueString(this.eval(funcParams));
@@ -172,7 +203,7 @@ export default class ARMExpressionParser {
         return uuidv5(this.funcConcat(funcParams, ''), '36c56b01-f9c9-4c7d-9786-0372733417ea');
       }
       if(funcName == 'union'){
-        return this.funcUnion(funcParams);
+        return this.funcUnion(funcParams,'');
       }
     }
 
@@ -212,8 +243,8 @@ export default class ARMExpressionParser {
     return _.get(resource,propAccessor,'{invalid_reference}');
   }
 
-  private funcVarParam(source: any, varName: string, propAccessor: string) {
-    const result = this.funcVarParamHelper(source,varName,propAccessor);
+  private funcVarParam(source: any, varName: string, propAccessor: string,paramOrVal:string) {
+    const result = this.funcVarParamHelper(source,varName,propAccessor,paramOrVal);
     return result;
   }
 
@@ -221,10 +252,7 @@ export default class ARMExpressionParser {
   // Emulate the ARM function `variables()` and `parameters()` to reference template variables/parameters
   // The only difference is the source 
   //
-  private funcVarParamHelper(source: any, varName: string, propAccessor: string) {
-    // Used in error messages
-    let paramOrVal = "parameters";
-
+  private funcVarParamHelper(source: any, varName: string, propAccessor: string, paramOrVal: string) {
     // propAccessor is the . or [] part of the object accessor
     // the [] notation requires some pre-processing for expressions e.g. foo[variable('bar')]
     if(propAccessor && propAccessor.charAt(0) == '['
@@ -254,7 +282,6 @@ export default class ARMExpressionParser {
         if(!val && val !== 0)
           return `{${this.eval(varName)}}`;
       } else {
-        paramOrVal = "variables";
         // For variables we use the actual value
         val = source[findKey];
       }
@@ -351,15 +378,34 @@ export default class ARMExpressionParser {
   //
   // Emulate the ARM function `union()`
   //
-  private funcUnion(funcParams: string) {
+  private funcUnion(funcParams: string, funcProps: string) {
     let paramList = this.parseParams(funcParams);
 
     const unionedObj = paramList.reduce((acc,param)=>{
       const evaledParam = this.eval(param);
       const parsedJson = this.tryParseJson(evaledParam);
+
       if(typeof(parsedJson) === 'string') return acc;
-      return _.merge(acc,parsedJson);
+      
+      // Eval the contents of the JSON
+      const flatTemplate:any = flat.flatten(parsedJson);
+      Object.keys(flatTemplate).forEach((k) => {
+        flatTemplate[k] = this.eval(flatTemplate[k]);
+        flatTemplate[k] = this.tryParseJson(flatTemplate[k]);
+      });
+      const evaledJson = flat.unflatten(flatTemplate);
+
+      return _.merge(acc,evaledJson);
     },{});
+
+    // If prop accessor is present then access it
+    if(funcProps.startsWith('.')) funcProps = funcProps.slice(1);
+    if(funcProps.length){
+      const resolved = _.get(unionedObj,funcProps);
+      if(typeof resolved === 'string' ) return resolved;
+      return `{${JSON.stringify(resolved)}}`;
+    }
+
     return `{${JSON.stringify(unionedObj)}}`;
   }
 
