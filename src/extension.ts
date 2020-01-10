@@ -257,7 +257,7 @@ async function refreshView() {
 			// Disable logging and telemetry for now
 			//console.log('### ArmView: ERROR STACK: ' + err.stack)
 			//reporter.sendTelemetryEvent('parseError', {'error': err, 'filename': editor.document.fileName});
-			panel.webview.postMessage({ command: 'error', payload: err.message });
+			panel.webview.postMessage({ command: 'error', payload: err.stack });
 		}
 	} else {
 		vscode.window.showErrorMessage("No editor active, open a ARM template JSON file in the editor");
