@@ -106,10 +106,10 @@
 		"watch": "tsc -w -p ./",
 		"test": "mocha --timeout 10000 test/reference.test.js test/arm-parser.test.js test/arm-exp-parser.test.js",
 		"test:reference": "mocha --timeout 10000 test/reference.test.js",
-		"test:parser": "mocha --timeout 10000 test/arm-parser.test.js",
-		"test:exp-parser": "mocha --timeout 10000 test/arm-exp-parser.test.js",
+		"test:parser": "mocha --timeout 10000 test/arm-parser.test.js --watch",
+		"test:exp-parser": "mocha --timeout 10000 test/arm-exp-parser.test.js --watch",
 		"test:watch": "mocha --timeout 10000 test/reference.test.js --watch",
-		"test-qs": "mocha --timeout 20000 test/quickstart.test.js"
+		"test-qs": "mocha --timeout 20000 test/quickstart.test.js --watch"
 	},
 	"dependencies": {
 		"@types/flat": "0.0.28",
