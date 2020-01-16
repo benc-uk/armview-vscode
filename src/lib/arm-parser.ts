@@ -508,10 +508,10 @@ export default class ARMParser {
           res.properties.parameters = this.resolveParameters(res.properties.parameters);
 
           // Strip off everything weird after file extension, i.e. after any ? or { characters we find
-          const match = linkUri.match(/(.*?\.\w*?)($|\?|{)/);
-          if(match) {
-            linkUri = match[1];
-          }
+          // const match = linkUri.match(/(.*?\.\w*?)($|\?|{)/);
+          // if(match) {
+          //   linkUri = match[1];
+          // }
 
           // OK let's try to handle linked templates shall we? O_O
           console.log("### ArmView: Processing linked template: " + linkUri);
