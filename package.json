@@ -101,7 +101,7 @@
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
-		"compile": "npm run lint && tsc -p ./",
+		"compile": "tsc -p ./",
 		"lint": "eslint --ext .ts src",
 		"watch": "tsc -w -p ./",
 		"test": "mocha --timeout 10000 test/reference.test.js",

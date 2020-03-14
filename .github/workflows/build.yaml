@@ -1,11 +1,11 @@
-name: Validate PR
+name: Lint, Build & Test
 
 on: 
   pull_request:
     branches: [master]
 
 jobs:
-  runLint:
+  lintBuildTest:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
@@ -15,6 +15,9 @@ jobs:
 
     - name: Lint code
       run: npm run lint
+
+    - name: Lint code
+      run: npm run compile
 
     - name: Run tests
       run: npm run test
