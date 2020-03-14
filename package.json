@@ -54,7 +54,8 @@
 				"armView.iconTheme": {
 					"type": "string",
 					"enum": [
-						"original"
+						"original",
+						"updated"
 					],
 					"default": "original",
 					"description": "Icon theme to use when displaying resource"
@@ -100,8 +101,8 @@
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
-		"lint": "tslint -p ./",
+		"compile": "npm run lint && tsc -p ./",
+		"lint": "eslint --ext .ts src",
 		"watch": "tsc -w -p ./",
 		"test": "mocha --timeout 10000 test/reference.test.js",
 		"test-qs": "mocha --timeout 20000 test/quickstart.test.js"
@@ -120,12 +121,16 @@
 		"@types/mocha": "^5.2.7",
 		"@types/node": "^10.5.2",
 		"@types/vscode": "^1.30.0",
+		"@typescript-eslint/eslint-plugin": "^2.23.0",
+		"@typescript-eslint/parser": "^2.23.0",
 		"chai": "^4.2.0",
 		"chai-subset": "^1.6.0",
+		"eslint": "^6.8.0",
 		"jsonlint": "^1.6.3",
 		"mocha": "^6.2.0",
+		"prettier": "^1.19.1",
 		"ts-loader": "^6.1.2",
-		"tslint": "^5.16.0",
+		"tslint": "^6.1.0",
 		"typescript": "^3.5.1"
 	}
 }

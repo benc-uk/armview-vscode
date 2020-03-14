@@ -3,6 +3,7 @@ src/**
 .gitignore
 tsconfig.json
 tslint.json
+.eslintrc.js
 test/**
 .github/**
 local/**

@@ -1,0 +1,14 @@
+name: Check & Lint
+
+on: 
+  pull_request:
+    branches: [master]
+
+jobs:
+  runLint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: NPM Install
+      run: npm Install
+    - name
