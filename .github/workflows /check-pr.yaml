@@ -1,4 +1,4 @@
-name: Check & Lint
+name: Validate PR
 
 on: 
   pull_request:
@@ -9,6 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
+
     - name: NPM Install
       run: npm Install
-    - name
+
+    - name: Lint code
+      run: npm run lint
+
+    - name: Run tests
+      run: npm run test
