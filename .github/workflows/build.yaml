@@ -16,7 +16,7 @@ jobs:
     - name: Lint code
       run: npm run lint
 
-    - name: Lint code
+    - name: Compile TypeScript
       run: npm run compile
 
     - name: Run tests
