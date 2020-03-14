@@ -4,6 +4,8 @@
 // Main Extension script
 //
 
+/* eslint @typescript-eslint/no-use-before-define: "off" */
+
 import * as vscode from 'vscode'
 import * as path from 'path'
 import ARMParser from './lib/arm-parser'

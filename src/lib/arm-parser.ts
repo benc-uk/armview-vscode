@@ -32,12 +32,13 @@ export default class ARMParser {
   //
   // Create a new ARM Parser
   //
-  constructor(iconBasePath: string,
+  constructor(
+    iconBasePath: string,
     name: string,
     reporter?: TelemetryReporter,
     editor?: TextEditor,
-    cache?: NodeCache) {
-
+    cache?: NodeCache
+  ) {
     // Both of these are overwritten when parse() is called
     this.template = { $schema: '', parameters: {}, variables: {}, resources: [] }
     this.expParser = new ARMExpressionParser(this.template)

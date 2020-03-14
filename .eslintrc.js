@@ -1,11 +1,11 @@
 module.exports = {
   env: {
-    node: true
+    es6: true
   },
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/eslint-recommended',
-    'plugin:@typescript-eslint/recommended',
+    'plugin:@typescript-eslint/recommended'
   ],
   parser: '@typescript-eslint/parser',
   parserOptions: {
@@ -16,17 +16,22 @@ module.exports = {
     '@typescript-eslint'
   ],
   rules: {
-    '@typescript-eslint/no-console': 'off',
-    '@typescript-eslint/no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off',
+    'no-trailing-spaces': 'error',
+    'no-console': 'off',
+    'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off',
+
     '@typescript-eslint/semi': ['error', 'never'],
     '@typescript-eslint/indent': ['error', 2],
     '@typescript-eslint/member-delimiter-style': 'off',
     '@typescript-eslint/no-explicit-any': 'off',
-    '@typescript-eslint/no-use-before-define': 'off',
+
     'func-call-spacing': 'off',
     '@typescript-eslint/func-call-spacing': 'error',
-    'no-trailing-spaces': 'error',
+
     'quotes': 'off',
-    '@typescript-eslint/quotes': ['error', 'single']
+    '@typescript-eslint/quotes': ['error', 'single'],
+
+    'comma-spacing': 'off',
+    '@typescript-eslint/comma-spacing': ['error']    
   }
 };
