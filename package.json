@@ -54,11 +54,10 @@
 				"armView.iconTheme": {
 					"type": "string",
 					"enum": [
-						"original",
-						"updated"
+						"original"
 					],
 					"default": "original",
-					"description": "Icon theme to use when displaying resource"
+					"description": "Icon theme to use when displaying resources"
 				},
 				"armView.linkedUrlCacheTime": {
 					"type": "integer",
