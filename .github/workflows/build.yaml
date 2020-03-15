@@ -1,0 +1,23 @@
+name: Lint, Build & Test
+
+on: 
+  pull_request:
+    branches: [master]
+
+jobs:
+  lintBuildTest:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: NPM Install
+      run: npm install
+
+    - name: Lint code
+      run: npm run lint
+
+    - name: Compile TypeScript
+      run: npm run compile
+
+    - name: Run tests
+      run: npm run test

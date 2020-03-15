@@ -1,4 +1,3 @@
-const fail = require("assert").fail;
 const ARMParser = require('../out/lib/arm-parser').default;
 const fs = require('fs');
 
@@ -106,5 +105,20 @@ describe('Test: expressions.json', function() {
     expect(res).to.be.an("array").to.containSubset([{data:{name:"LTM4NjUwNDUwNw"}}]);
     expect(res).to.be.an("array").to.containSubset([{data:{name:"977d95b7-70c9-5b8a-9a61-ebc22fb8167f"}}]);
     expect(res).to.be.an("array").to.containSubset([{data:{name:"zone-foo_web5"}}]);
+  })
+});
+
+//
+//
+//
+describe('Test: test-bug.json', function() {
+  let res;
+  it('Parse file', async function() {
+    res = await loadTemplate("test/ref/test-bug.json");
+  });
+
+  it('Validate JSON backslash v bug', async function() {    
+    expect(res[0].data.name).to.eq('test%20%5Cvery%20lemons')
+    expect(res[0].data.extra['template-url']).to.eq('Resources\\virtualMachines\\ScaleSetTemplate.json')
   })
 });

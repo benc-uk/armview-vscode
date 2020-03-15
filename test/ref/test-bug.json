@@ -1,0 +1,28 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "simpleParam": {
+      "defaultValue": "Resources\\virtualMachines\\ScaleSetTemplate.json",
+      "type": "string"
+    }
+  },
+  /* blah */
+  "variables": {
+
+  },
+  "resources": [
+    {
+      "name": "test \\very lemons",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2019-05-01",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[parameters('simpleParam')]",
+          "contentVersion": "2"
+        }
+      }
+    }
+  ]
+}

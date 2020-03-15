@@ -1,3 +1,10 @@
+## 0.4.0
+- NEW ICONS! ✨🎨 Refreshed the icons to the new style Azure icons.  
+  Not every icon has a new look as this style refresh hasn't rolled out to every icon I use.
+- Switched to new JSON linting library. Fixes obscure bug where `\\v` would render as ``
+- Code base now linted with typescript-eslint, and linting is checked on PRs
+
+  
 ## 0.3.4
 - Responsive toolbar on narrow view
 - Better fetching of external linked templates
