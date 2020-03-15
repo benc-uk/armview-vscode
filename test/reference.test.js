@@ -116,13 +116,9 @@ describe('Test: test-bug.json', function() {
   it('Parse file', async function() {
     res = await loadTemplate("test/ref/test-bug.json");
   });
-  
-  it('Validate node count', async function() {
-    expect(res).to.have.lengthOf(1);
-  });
 
-  it('Validate expression evaluation', async function() {    
-    console.log(res[0].data.extra)
+  it('Validate JSON backslash v bug', async function() {    
+    expect(res[0].data.name).to.eq('test%20%5Cvery%20lemons')
     expect(res[0].data.extra['template-url']).to.eq('Resources\\virtualMachines\\ScaleSetTemplate.json')
   })
 });
