@@ -151,6 +151,7 @@ export default class ARMExpressionParser {
 
     if (!source) { return '{undefined}' }
     const findKey = Object.keys(source).find(key => varName === key)
+
     if (findKey) {
       let val
 

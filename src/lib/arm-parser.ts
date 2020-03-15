@@ -1,14 +1,12 @@
 //
 // arm-parser.ts - ARM Parser
 // Class to parse ARM templates and return a set of elements for rendering with Cytoscape
-// Ben Coleman, 2017 & 2019
-// Modified & updated for VS Code extension. Converted (crudely) to TypeScript, Oct 2019
+// Ben Coleman, 2017 - 2020
+// Modified & updated for VS Code extension. Converted to TypeScript, Oct 2019
 //
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const jsonLint = require('jsonlint')
+import * as jsonlint from '@bencuk/jsonlint'
 import * as path from 'path'
-import * as stripJsonComments from 'strip-json-comments'
 import 'isomorphic-fetch'
 import TelemetryReporter from 'vscode-extension-telemetry'
 import { TextEditor } from 'vscode'
@@ -105,7 +103,8 @@ export default class ARMParser {
       }
 
       // ARM templates do allow comments, but it's not part of the JSON spec
-      content = stripJsonComments(content)
+      // With newer jsonlint - no longer required
+      //content = stripJsonComments(content)
 
       // ARM also allows for multi-line strings, which is AWFUL
       // This is a crude attempt to cope with them by simply stripping the newlines if we find any
@@ -134,7 +133,7 @@ export default class ARMParser {
       }
 
       // Switched to jsonlint for more meaningful error messages
-      return jsonLint.parse(content)
+      return jsonlint.parse(content, { mode: 'cjson' })
     } catch (err) {
       err.message = 'File is not valid JSON, please correct the error(s) below\n\n' + err.message
       throw err
@@ -296,7 +295,7 @@ export default class ARMParser {
 
         // Handle linked templates, oh boy, this is a whole world of pain
         if (res.type === 'microsoft.resources/deployments' && res.properties
-          && res.properties.templateLink && res.properties.templateLink.uri) {
+            && res.properties.templateLink && res.properties.templateLink.uri) {
           let linkUri = res.properties.templateLink.uri
           linkUri = this.expParser.eval(linkUri, true)
 
