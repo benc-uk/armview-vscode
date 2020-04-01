@@ -10,7 +10,7 @@ import * as path from 'path'
 import 'isomorphic-fetch'
 import TelemetryReporter from 'vscode-extension-telemetry'
 import { TextEditor } from 'vscode'
-import { NodeCache } from 'node-cache'
+import * as NodeCache from 'node-cache'
 
 import * as utils from './utils'
 import ARMExpressionParser from './arm-exp-parser'
