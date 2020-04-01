@@ -107,12 +107,9 @@
 		"test-qs": "mocha --timeout 20000 test/quickstart.test.js"
 	},
 	"dependencies": {
-		"axios": "^0.19.0",
 		"isomorphic-fetch": "^2.2.1",
-		"@bencuk/jsonlint": "10.2.1-fork",
+		"jsonc-parser": "^2.2.1",
 		"node-cache": "^4.2.1",
-		"strip-bom": "^3.0.0",
-		"strip-json-comments": "^3.0.1",
 		"uuid": "^3.3.3",
 		"vscode-extension-telemetry": "^0.1.2"
 	},
