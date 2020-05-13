@@ -5,6 +5,7 @@
 //
 
 import * as utils from './utils'
+import { v5 as uuidv5 } from 'uuid' // For version 5
 import { Template } from './arm-parser-types'
 
 export default class ARMExpressionParser {
@@ -106,8 +107,6 @@ export default class ARMExpressionParser {
         return 0
       }
       if (funcName === 'guid') {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const uuidv5 = require('uuid/v5')
         return uuidv5(this.funcConcat(funcParams, ''), '36c56b01-f9c9-4c7d-9786-0372733417ea')
       }
     }

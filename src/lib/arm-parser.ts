@@ -5,12 +5,12 @@
 // Modified & updated for VS Code extension. Converted to TypeScript, Oct 2019
 //
 
-import * as jsonlint from '@bencuk/jsonlint'
+import * as JSONCparser from 'jsonc-parser'
 import * as path from 'path'
 import 'isomorphic-fetch'
 import TelemetryReporter from 'vscode-extension-telemetry'
 import { TextEditor } from 'vscode'
-import { NodeCache } from 'node-cache'
+import * as NodeCache from 'node-cache'
 
 import * as utils from './utils'
 import ARMExpressionParser from './arm-exp-parser'
@@ -96,48 +96,54 @@ export default class ARMParser {
   // Try to parse JSON file with the various "relaxations" to the JSON spec that ARM permits
   //
   private parseJSON(content: string): any {
-    try {
-      // Strip out BOM characters for those mac owning weirdos, not sure this is needed
-      if (content.charCodeAt(0) === 0xFEFF) {
-        content = content.slice(1)
-      }
-
-      // ARM templates do allow comments, but it's not part of the JSON spec
-      // With newer jsonlint - no longer required
-      //content = stripJsonComments(content)
-
-      // ARM also allows for multi-line strings, which is AWFUL
-      // This is a crude attempt to cope with them by simply stripping the newlines if we find any
-
-      // Find all strings in double quotes (thankfully JSON only allows double quotes)
-      const re = /(".*?")/gims
-      let match
-      // tslint:disable: no-conditional-assignment
-      while ((match = re.exec(content)) != null) {
-        const stringVal = match[1]
-        // Only work on strings that include a newline (or \n\r)
-        if (stringVal.includes('\n')) {
-          console.log(`### ArmView: Found a multi-line string in your template at offset ${match.index}. Attempting to rectify to valid JSON`)
-
-          // Mangle the content ripping the matched string out
-          const front = content.substr(0, match.index)
-          const back = content.substr(match.index + stringVal.length, content.length)
-          // Brute force removal!
-          // We preserve whitespace, but not sure if it's correct. We're outside the JSON spec!
-          let cleanString = stringVal.replace(/\n/g, '') // string.replace(/\s*\n\s*/g, ' ')
-          cleanString = cleanString.replace(/\r/g, '')
-
-          // Glue it back together
-          content = front + cleanString + back
-        }
-      }
-
-      // Switched to jsonlint for more meaningful error messages
-      return jsonlint.parse(content, { mode: 'cjson' })
-    } catch (err) {
-      err.message = 'File is not valid JSON, please correct the error(s) below\n\n' + err.message
-      throw err
+    // Strip out BOM characters for those mac owning weirdos, not sure this is still needed
+    if (content.charCodeAt(0) === 0xFEFF) {
+      content = content.slice(1)
     }
+
+    // ARM also allows for multi-line strings, which is AWFUL
+    // This is a crude attempt to cope with them by simply stripping the newlines if we find any
+    // Find all strings in double quotes (thankfully JSON only allows double quotes)
+    const re = /(".*?")/gims
+    let match
+    // tslint:disable: no-conditional-assignment
+    while ((match = re.exec(content)) != null) {
+      const stringVal = match[1]
+      // Only work on strings that include a newline (or \n\r)
+      if (stringVal.includes('\n')) {
+        console.log(`### ArmView: Found a multi-line string in your template at offset ${match.index}. Attempting to rectify to valid JSON`)
+
+        // Mangle the content ripping the matched string out
+        const front = content.substr(0, match.index)
+        const back = content.substr(match.index + stringVal.length, content.length)
+        // Brute force removal!
+        // We preserve whitespace, but not sure if it's correct. We're outside the JSON spec!
+        let cleanString = stringVal.replace(/\n/g, '') // string.replace(/\s*\n\s*/g, ' ')
+        cleanString = cleanString.replace(/\r/g, '')
+
+        // Glue it back together
+        content = front + cleanString + back
+      }
+    }
+
+
+    // Switched to Microsoft jsonc-parser
+    const errors: JSONCparser.ParseError[] = []
+    const parsedTemplate = JSONCparser.parse(content, errors)
+
+    // We have to manually check for errors
+    if(errors.length > 0) {
+      const errMessage = errors.map(err => {
+        // jsonc-parser doesn't give line numbers for errors :(
+        // Horrific quick & dirty to convert the error offset to line number
+        const lineNum = (content.substr(0, err.offset).match(/\n/g) || []).length + 1
+        return `${JSONCparser.printParseErrorCode(err.error)} on line ${lineNum}`
+      }).join('\n')
+      throw new Error(errMessage)
+    }
+
+    // Otherwise we're good! We have something parsed
+    return parsedTemplate
   }
 
   //
