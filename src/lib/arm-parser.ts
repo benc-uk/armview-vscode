@@ -268,11 +268,12 @@ export default class ARMParser {
               hash = utils.hashCode(this.editor.document.fileName)
             }
             // Send resource type, FQN and a hashed/obscured version of the filename
-            if (this.reporter) {
-              this.reporter.sendTelemetryEvent('missingIcon', {
-                fileHash: hash, resourceFQN: res.fqn, resourceType: res.type,
-              })
-            }
+            // !!! TODO #24 - Disabled temporarily - while I investigate bug with vscode-extension-telemetry
+            // if (this.reporter) {
+            //   this.reporter.sendTelemetryEvent('missingIcon', {
+            //     fileHash: hash, resourceFQN: res.fqn, resourceType: res.type,
+            //   })
+            // }
 
             // Use default icon as nothing else found
             img = 'default.svg'
