@@ -1,0 +1,42 @@
+#
+# Runs when a release is created
+# Publishes the extension to the VS Marketplace
+# Also packages the vsix file and uploads it to the corresponding release
+#
+
+name: Publish & Package
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v2
+
+      - name: NPM install
+        run: npm install
+
+      - name: Publish extension to marketplace
+        uses: lannonbr/vsce-action@master
+        with:
+          args: "publish -p ${{ secrets.VSCE_TOKEN }}"
+
+      - name: Package extension
+        uses: lannonbr/vsce-action@master
+        with:
+          args: "package -o armview-${{ github.event.release.tag_name }}.vsix"
+
+      - name: Upload extension package to release
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }} 
+          asset_path: ./armview-${{ github.event.release.tag_name }}.vsix
+          asset_name: armview-${{ github.event.release.tag_name }}.vsix
+          asset_content_type: application/octet-stream
