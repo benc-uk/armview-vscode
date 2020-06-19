@@ -101,7 +101,7 @@
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -p ./",
-		"lint": "eslint --ext .ts src assets/js/main.js",
+		"lint": "eslint --ext .ts assets/js/main.js src",
 		"watch": "tsc -w -p ./",
 		"test": "mocha --timeout 10000 test/reference.test.js",
 		"test-qs": "mocha --timeout 20000 test/quickstart.test.js"

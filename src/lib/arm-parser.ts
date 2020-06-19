@@ -7,6 +7,7 @@
 
 import * as JSONCparser from 'jsonc-parser'
 import * as path from 'path'
+import * as fs from 'fs'
 import 'isomorphic-fetch'
 import TelemetryReporter from 'vscode-extension-telemetry'
 import { TextEditor } from 'vscode'
@@ -252,7 +253,7 @@ export default class ARMParser {
 
         // Workout which icon image to use, no way to catch missing images client side so we do it here
         let img = 'default.svg'
-        const iconExists = require('fs').existsSync(path.join(this.iconBasePath, `/${res.type}.svg`))
+        const iconExists = fs.existsSync(path.join(this.iconBasePath, `/${res.type}.svg`))
         if (iconExists) {
           img = `${res.type}.svg`
         } else {
