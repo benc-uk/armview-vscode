@@ -218,13 +218,10 @@ async function pickParamsFile(): Promise<any> {
 //
 async function pickFilters(): Promise<any>  {
   const res = await vscode.window.showInputBox({ prompt: 'Comma separated list of resource types to filter out. Can be partial strings. Empty string will remove all filters', value: filters, placeHolder: 'e.g. vaults/secrets, securityRules' })
-  if (res) {
-    filters = res.toString().toLowerCase()
-  } else {
-    filters = ''
-  }
-  if (panel) { panel.webview.postMessage({ command: 'filtersApplied', payload: filters }) }
 
+  // Res will be undefined if the user cancels (hits escape)
+  if (res !== undefined) { filters = res.toString().toLowerCase() }
+  if (panel) { panel.webview.postMessage({ command: 'filtersApplied', payload: filters }) }
   refreshView()
 }
 
