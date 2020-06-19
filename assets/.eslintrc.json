@@ -1,0 +1,19 @@
+{
+  "parserOptions": {
+      "ecmaVersion": 6,
+      "sourceType": "script"
+  },
+  "env": {
+    "browser": true
+  },
+  "rules": {
+      "semi": ["error", "never"],
+      "quotes": ["error", "single"],
+      "no-extra-semi": "error",
+      "no-trailing-spaces": "error",
+      "no-console": "off",
+      "indent": ["error", 2],
+      "func-call-spacing": "error",
+      "comma-spacing": "error"
+  }
+}

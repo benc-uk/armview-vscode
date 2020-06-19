@@ -2,7 +2,7 @@
 	"name": "armview",
 	"displayName": "ARM Template Viewer",
 	"description": "Graphically display ARM templates in an interactive map view",
-	"version": "0.4.2",
+	"version": "0.4.3",
 	"icon": "assets/img/icons/main.png",
 	"publisher": "bencoleman",
 	"author": {
@@ -101,7 +101,7 @@
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
 		"compile": "tsc -p ./",
-		"lint": "eslint --ext .ts src",
+		"lint": "eslint --ext .ts assets/js/main.js src",
 		"watch": "tsc -w -p ./",
 		"test": "mocha --timeout 10000 test/reference.test.js",
 		"test-qs": "mocha --timeout 20000 test/quickstart.test.js"
@@ -109,22 +109,22 @@
 	"dependencies": {
 		"isomorphic-fetch": "^2.2.1",
 		"jsonc-parser": "^2.2.1",
-		"node-cache": "^5.1.0",
-		"uuid": "^8.0.0",
+		"node-cache": "^5.1.1",
+		"uuid": "^8.1.0",
 		"vscode-extension-telemetry": "^0.1.6"
 	},
 	"devDependencies": {
-		"@types/uuid": "^7.0.3",
+		"@types/uuid": "^8.0.0",
 		"@types/mocha": "^7.0.2",
-		"@types/node": "^14.0.1",
-		"@types/vscode": "^1.30.0",
-		"@typescript-eslint/eslint-plugin": "^2.33.0",
-		"@typescript-eslint/parser": "^2.33.0",
+		"@types/node": "^14.0.13",
+		"@types/vscode": "^1.46.0",
+		"@typescript-eslint/eslint-plugin": "^3.3.0",
+		"@typescript-eslint/parser": "^3.3.0",
 		"chai": "^4.2.0",
 		"chai-subset": "^1.6.0",
-		"eslint": "^7.0.0",
-		"mocha": "^7.1.2",
-		"ts-loader": "^7.0.4",
-		"typescript": "^3.9.2"
+		"eslint": "^7.2.0",
+		"mocha": "^8.0.1",
+		"ts-loader": "^7.0.5",
+		"typescript": "^3.9.5"
 	}
 }
