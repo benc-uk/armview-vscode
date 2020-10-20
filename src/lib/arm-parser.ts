@@ -356,7 +356,7 @@ export default class ARMParser {
           } catch (err) {
             // That failed, in most cases we'll end up here
             console.log(`### ArmView: '${err}' URL not available, will search filesystem`)
-            subTemplate = '' // !IMPORTANT The above step might have failed but set subTemplate to invalid
+            subTemplate = '' // IMPORTANT! The above step might have failed but set subTemplate to invalid
 
             // This crazy code tries to search the loaded workspace for the file, two different ways
             if (this.editor) {
@@ -578,7 +578,7 @@ export default class ARMParser {
 
         for (const subres of linkRes) {
           if (subres) {
-            // !IMPORTANT! Only set the parent if it's not already set
+            // IMPORTANT! Only set the parent if it's not already set
             // Otherwise we overwrite the value when working with multiple levels deep of linkage
             if (subres.data && !subres.data.parent) {
               subres.data.parent = res.id
