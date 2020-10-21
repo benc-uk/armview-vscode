@@ -43,7 +43,7 @@ export class CytoscapeNode {
 
 type CytoscapeNodeTypes = 'nodes' | 'edges'
 
-interface CytoscapeNodeData {
+export interface CytoscapeNodeData {
   id: string
   name: string
   img: string
@@ -53,9 +53,10 @@ interface CytoscapeNodeData {
   location: string
   parent?: string
   extra: Record<string, string>
+  fqn: string
 }
 
-interface CytoscapeEdgeData {
+export interface CytoscapeEdgeData {
   id: string
   source: string
   target: string
