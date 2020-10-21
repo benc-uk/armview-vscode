@@ -3,6 +3,7 @@
 // Class to parse ARM templates and return a set of elements for rendering with Cytoscape
 // Ben Coleman, 2017 - 2020
 // Modified & updated for VS Code extension. Converted to TypeScript, Oct 2019
+// Reworked the resource linking logic and parsing, Oct 2020
 //
 
 import * as JSONCparser from 'jsonc-parser'
@@ -86,7 +87,13 @@ export default class ARMParser {
 
     // 2nd pass, work on resources
     await this.processResources(this.template.resources)
+
+    // Check for errors
     if (this.error) { throw this.error }
+
+    // 3rd pass, create dependsOn links
+    this.postProcess(this.template.resources)
+
     console.log(`### ArmView: Parsing complete, found ${this.elements.length} elements in template ${this.name}`)
 
     // return result elements
@@ -126,7 +133,6 @@ export default class ARMParser {
         content = front + cleanString + back
       }
     }
-
 
     // Switched to Microsoft jsonc-parser
     const errors: JSONCparser.ParseError[] = []
@@ -212,7 +218,7 @@ export default class ARMParser {
   }
 
   //
-  // Pre-parser function, does some work to make life easier for the main parser
+  // Inject parameter file values into template
   //
   private applyParams(parameterJSON: string): void {
     // Try to parse JSON file
@@ -524,22 +530,23 @@ export default class ARMParser {
           location: res.location ? utils.encode(res.location) : '',
           name: utils.encode(res.name),
           type: res.type,
+          fqn: res.fqn
         }
         this.elements.push(cyNode)
 
-        // Serious business - find the dependencies between resources
-        if (res.dependsOn) {
-          res.dependsOn.forEach((dep: string) => {
+        // // Serious business - find the dependencies between resources
+        // if (res.dependsOn) {
+        //   res.dependsOn.forEach((dep: string) => {
 
-            // Most dependsOn are not static strings, they will be expressions
-            dep = this.expParser.eval(dep, true)
+        //     // Most dependsOn are not static strings, they will be expressions
+        //     dep = this.expParser.eval(dep, true)
 
-            // Find resource by eval'ed dependsOn string
-            const dependantRes = this.findResource(dep)
-            // Then create a link between this resource and the found dependency
-            if (dependantRes) { this.addLink(res, dependantRes) }
-          })
-        }
+        //     // Find resource by eval'ed dependsOn string
+        //     const dependantRes = this.findResource(dep)
+        //     // Then create a link between this resource and the found dependency
+        //     if (dependantRes) { this.addLink(res, dependantRes) }
+        //   })
+        // }
 
         // Now recurse into nested resources
         if (res.resources) {
@@ -552,7 +559,33 @@ export default class ARMParser {
   }
 
   //
-  // Create a link element between resources
+  // Locate resource dependencies and add them to the graph
+  //
+  private postProcess(resources: Resource[]) {
+    for(const res of resources) {
+      // Use resource.dependsOn array as our source of linkage
+      if (res.dependsOn) {
+        res.dependsOn.forEach((dependsOn: string) => {
+          // Most dependsOn are not static strings, they will be expressions
+          const dependsOnParsed = this.expParser.eval(dependsOn, true)
+
+          // Find resource by eval'ed dependsOn string
+          const dependantRes = this.findResource(this.template.resources, dependsOnParsed)
+
+          // Then create a link between this resource and the found dependency
+          if (dependantRes) {
+            this.addLink(res, dependantRes)
+          }
+        })
+      }
+      if(res.resources) {
+        this.postProcess(res.resources)
+      }
+    }
+  }
+
+  //
+  // Create a link "edge" between resources
   //
   private addLink(r1: any, r2: any): void {
     const edge = new CytoscapeNode('edges')
@@ -564,6 +597,9 @@ export default class ARMParser {
     this.elements.push(edge)
   }
 
+  //
+  // Sub-parse linked and nested templates
+  //
   private async parseLinkedOrNested(res: any, subTemplate: string): Promise<number> {
     // If we've got some actual data, means we read the linked file somehow
     if (subTemplate) {
@@ -603,12 +639,21 @@ export default class ARMParser {
   //
   // Locate a resource by resource id
   //
-  private findResource(name: string): any {
-    return this.template.resources.find((res: any) => {
+  private findResource(resources: Resource[], name: string): any {
+    for(const res of resources) {
+      // Handle nested resources recursively
+      if(res.resources) {
+        const result = this.findResource(res.resources, name)
+        if(result) { return result }
+      }
+
       // Simple match on substring is possible after fully resolving names & types
       // Switched to endsWith rather than include, less generous but more correct
-      return res.fqn.toLowerCase().endsWith(name.toLowerCase())
       // OLD return res.fqn.toLowerCase().includes(name.toLowerCase())
-    })
+      if(res.fqn.toLowerCase().endsWith(name.toLowerCase())) {
+        return res
+      }
+    }
+    return null
   }
 }
