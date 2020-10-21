@@ -66,9 +66,9 @@ The extension will attempt to locate and display linked templates, these resourc
 - The layout of the icons/resources can initially be a bit strange, and will require some manual tidy up to look good. I'm investigating how to improve this.
 
 # Notes
-This is a port of a older *ARM Viewer* project, which was a standalone Node.js webapp https://github.com/benc-uk/azure-armviewer
-
 This project was created as a learning exercise, but was heavily inspired & influenced by the old ARMViz tool. ARMViz sadly seems to have been abandoned, it often has problems displaying some templates. Personally I wasn't a fan of look of the output, and found it hard to read. These are a few of the reasons why I created this project
+
+A new based version based on the same code as this VS Code extension, can be found here: https://github.com/benc-uk/armview-web
 
 ## ARM Template JSON Support
 ARM templates go outside the JSON specification and break it in a couple of areas:
@@ -78,7 +78,7 @@ The extension supports both of these as far as is reasonably possible, multi-lin
 
 
 ## Limitations & Known Issues 
-- The code attempts to find the links (`dependsOn` relationships) between ARM resources, however due to the *many* subtle and complex ways these relationships can be defined & expressed, certain links may not be picked up & displayed.
+- The code attempts to find the links (`dependsOn` relationships) between ARM resources, however due to the *many* subtle and complex ways these relationships can be defined & expressed, certain links may not be picked up & displayed. Oct 2020 - Parsing for nested resources has been improved.
 - Icons for the most commonly used & popular resource types have been added, however not every resource is covered (There's simply too many and no canonical source). The default ARM cube icon will be shown as a fallback. Get in touch if you want a icon added for a particular resource type.
 - Resolving names & other properties for resources is attempted, but due to programmatic way these are generally defined with ARM functions and expressions, full name resolution is not always possible.
 - Templates using the loop functions `copy` & `copyIndex` to create multiple resources will not be rendered correctly due to limitations on evaluating the dynamic iterative state of the template.

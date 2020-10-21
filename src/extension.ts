@@ -75,7 +75,10 @@ export function activate(context: vscode.ExtensionContext): void {
       panel = vscode.window.createWebviewPanel(
         'armViewer',
         'ARM Viewer',
-        vscode.ViewColumn.Beside,
+        {
+          preserveFocus: false,
+          viewColumn: vscode.ViewColumn.Beside
+        },
         {
           enableScripts: true,
           localResourceRoots: [vscode.Uri.file(path.join(extensionPath, 'assets'))],

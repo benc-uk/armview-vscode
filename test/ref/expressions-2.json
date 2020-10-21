@@ -1,0 +1,26 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+
+  "variables": {
+    "var1": "the cat sat on the mat"
+  },
+
+  "resources": [
+    {
+      // name should be 'the donkey sat on the mat'
+      "name": "[replace(variables('var1'), 'cat', 'donkey')]",
+      "type": "microsoft.network/dnszones"
+    },
+    {
+      // name should be 'c'
+      "name": "[take(variables('var1'), 4)]",
+      "type": "microsoft.network/dnszones"
+    },
+    {
+      // name should be 'd'
+      "name": "[take(replace(variables('var1'), 'cat', 'donkey'), 4)]",
+      "type": "microsoft.network/dnszones"
+    }
+  ]
+}

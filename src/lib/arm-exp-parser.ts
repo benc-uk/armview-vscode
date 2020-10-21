@@ -86,6 +86,9 @@ export default class ARMExpressionParser {
       if (funcName === 'replace') {
         return this.funcReplace(funcParams)
       }
+      if (funcName === 'take') {
+        return this.funcTake(funcParams)
+      }
       if (funcName === 'tolower') {
         return this.funcToLower(funcParams)
       }
@@ -300,6 +303,18 @@ export default class ARMExpressionParser {
     const len = parseInt(this.eval(paramList[2]), 10)
 
     return this.eval(str).substring(start, start + len)
+  }
+
+  //
+  // Emulate the ARM function `take()`
+  //
+  private funcTake(funcParams: string): string {
+    const paramList = this.parseParams(funcParams)
+    const value = this.eval(paramList[0])
+    const count = parseInt(this.eval(paramList[1]), 10)
+
+    // Could be an array or string, but JS doesn't care
+    return this.eval(value[count])
   }
 
   //
