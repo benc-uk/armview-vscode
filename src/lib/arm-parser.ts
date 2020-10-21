@@ -91,9 +91,6 @@ export default class ARMParser {
     // Check for errors
     if (this.error) { throw this.error }
 
-    // 3rd pass, create dependsOn links
-    this.postProcess(this.template.resources)
-
     console.log(`### ArmView: Parsing complete, found ${this.elements.length} elements in template ${this.name}`)
 
     // return result elements
@@ -534,54 +531,27 @@ export default class ARMParser {
         }
         this.elements.push(cyNode)
 
-        // // Serious business - find the dependencies between resources
-        // if (res.dependsOn) {
-        //   res.dependsOn.forEach((dep: string) => {
+        // Serious business - find the dependsOn dependencies between resources
+        if (res.dependsOn) {
+          res.dependsOn.forEach((dependsOn: string) => {
+            // Most dependsOn are not static strings, they will be expressions
+            const dependsOnParsed = this.expParser.eval(dependsOn, true)
 
-        //     // Most dependsOn are not static strings, they will be expressions
-        //     dep = this.expParser.eval(dep, true)
-
-        //     // Find resource by eval'ed dependsOn string
-        //     const dependantRes = this.findResource(dep)
-        //     // Then create a link between this resource and the found dependency
-        //     if (dependantRes) { this.addLink(res, dependantRes) }
-        //   })
-        // }
+            // Find resource by eval'ed dependsOn string
+            const dependantRes = this.findResource(this.template.resources, dependsOnParsed)
+            // Then create a link between this resource and the found dependency
+            if (dependantRes) { this.addLink(res, dependantRes) }
+          })
+        }
 
         // Now recurse into nested resources
         if (res.resources) {
           await this.processResources(res.resources)
         }
       } catch (err) {
-        this.error = err  // OLD `Unable to process ARM resources, template is probably invalid. ${ex}`
+        this.error = err
       }
     } // end for
-  }
-
-  //
-  // Locate resource dependencies and add them to the graph
-  //
-  private postProcess(resources: Resource[]) {
-    for(const res of resources) {
-      // Use resource.dependsOn array as our source of linkage
-      if (res.dependsOn) {
-        res.dependsOn.forEach((dependsOn: string) => {
-          // Most dependsOn are not static strings, they will be expressions
-          const dependsOnParsed = this.expParser.eval(dependsOn, true)
-
-          // Find resource by eval'ed dependsOn string
-          const dependantRes = this.findResource(this.template.resources, dependsOnParsed)
-
-          // Then create a link between this resource and the found dependency
-          if (dependantRes) {
-            this.addLink(res, dependantRes)
-          }
-        })
-      }
-      if(res.resources) {
-        this.postProcess(res.resources)
-      }
-    }
   }
 
   //
