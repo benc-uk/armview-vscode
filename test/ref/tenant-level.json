@@ -19,13 +19,13 @@
           "name": "testing-sub",
           "type": "subscriptions",
           "apiVersion": "2020-05-01",
-          "dependsOn": [ "core-mg" ]
+          "dependsOn": [ "core-mgmt-grp" ]
         },
         {
           "name": "staging-sub",
           "type": "subscriptions",
           "apiVersion": "2020-05-01",
-          "dependsOn": [ "core-mg" ]
+          "dependsOn": [ "[resourceId('Microsoft.Management/managementGroups', 'core-mgmt-grp')]" ]
         }
       ]
     }
