@@ -1,3 +1,32 @@
+## 0.4.5
+- Improved handling of dependsOn links with nested resources (e.g. SQL databases).
+- New icons for management groups and subscriptions.
+- ARM template function added `take()`.
+- NPM package updates.
+- Cytoscape updated to 3.16.2
+
+
+## 0.4.4
+- No features / changes
+- Seriously none
+- Testing new release process with GitHub Actions
+
+
+## 0.4.3
+- Changes behaviour of cancelling the filter dialog (will not wipe your setting when hitting esc)
+- Telemetry fixes
+- (internal) Linting setup improvements
+
+
+## 0.4.2
+- Disabling telemetry sent when icon is missing, probably a bug in external `vscode-extension-telemetry` package. Will fix `updatedStack.replace` error
+
+
+## 0.4.1
+- Package updates for security fixes etc
+- Switched JSON parser to https://github.com/microsoft/node-jsonc-parser
+- No new features
+
 ## 0.4.0
 - NEW ICONS! ✨🎨 Refreshed the icons to the new style Azure icons.  
   Not every icon has a new look as this style refresh hasn't rolled out to every icon I use.
