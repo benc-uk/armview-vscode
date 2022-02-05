@@ -7,23 +7,21 @@
       "type": "string"
     }
   },
-  "variables": {
-
-  },
+  "variables": {},
   "resources": [
     {
       "name": "directLink",
       "type": "microsoft.resources/deployments",
       "properties": {
         "templateLink": {
-          "uri": "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/101-aks/azuredeploy.json"
+          "uri": "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/quickstarts/microsoft.kubernetes/aks/azuredeploy.json"
         }
       }
     },
     {
       "name": "local1",
       "type": "microsoft.resources/deployments",
-      "properties": { 
+      "properties": {
         "templateLink": {
           "uri": "foo/blah/basic.json"
         }
@@ -32,17 +30,17 @@
     {
       "name": "local2",
       "type": "microsoft.resources/deployments",
-      "properties": { 
+      "properties": {
         "templateLink": {
           "uri": "{f}/web.json?rubbish=1"
         }
       },
-      "dependsOn": [ "web2" ]
+      "dependsOn": ["web2"]
     },
     {
       "name": "web",
       "type": "microsoft.resources/deployments",
-      "properties": { 
+      "properties": {
         "templateLink": {
           "uri": "http://example.net/web.json"
         }
@@ -51,7 +49,7 @@
     {
       "name": "web2",
       "type": "microsoft.resources/deployments",
-      "properties": { 
+      "properties": {
         "templateLink": {
           "uri": "http://example.net/nested2/linked.json"
         }
@@ -60,11 +58,11 @@
     {
       "name": "two-deep",
       "type": "microsoft.resources/deployments",
-      "properties": { 
+      "properties": {
         "templateLink": {
           "uri": "http://example.net/nested2/two-deep.json"
         }
       }
-    }         
+    }
   ]
 }
