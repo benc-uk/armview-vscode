@@ -1,5 +1,6 @@
 # ARM Viewer for VS Code
-[![Version](https://vsmarketplacebadge.apphb.com/version/bencoleman.armview.svg)](https://marketplace.visualstudio.com/items?itemName=bencoleman.armview) 
+
+[![Version](https://vsmarketplacebadge.apphb.com/version/bencoleman.armview.svg)](https://marketplace.visualstudio.com/items?itemName=bencoleman.armview)
 ![Installs](https://vsmarketplacebadge.apphb.com/installs-short/bencoleman.armview.svg)
 
 This extension displays a graphical preview of Azure Resource Manager (ARM) templates. The view will show all resources with the official Azure icons and also linkage between the resources. Uses the [Cytoscape.js library](http://js.cytoscape.org/)
@@ -15,6 +16,7 @@ Extension as been tested successfully against all 900+ [Azure Quickstart Templat
 ![s3](assets/readme/screen3.png)
 
 # Usage
+
 - Open a ARM template JSON file, and ensure it is active/focused
   - Click the eye symbol in the top right of the editor tab bar
   - ![toolbar](assets/readme/icon.png)
@@ -26,12 +28,14 @@ Extension as been tested successfully against all 900+ [Azure Quickstart Templat
   - Use keyboard shortcut `Ctrl+Alt+Q`
 
 ## Basic Features
+
 - Click on a resource to show popup 'infobox' for that resource, a selected subset of details will be shown.
 - Click and drag on background to move and pan the view around.
 - Zoom in and out with the mouse wheel.
 - Drag icons around to layout as your wish, one tip is to click 'Re-fit' after moving to get the best view & zoom level.
 
 ## Toolbar
+
 - Click the 'Labels' button to toggle labels from resource names to resource types.
 - Click the 'Re-fit' button to refit the view to the best zoom level.
 - Click the 'Snap' button to toggle snap to grid mode on/off.
@@ -41,23 +45,28 @@ Extension as been tested successfully against all 900+ [Azure Quickstart Templat
   - 'Grid' puts the nodes on a grid, better for large templates but will often not make logical sense.
 
 ## Parameter Files
+
 By default the extension will try to use any `defaultValues` found in the parameters section of the template.
 
-To apply a set of input parameters and overrides to the view, click 'Params' toolbar button. You will be prompted for a ARM parameters JSON file (e.g. `azuredeploy.parameters.json`). The values in the parameters JSON fill will be used in place of values set in the template 
+To apply a set of input parameters and overrides to the view, click 'Params' toolbar button. You will be prompted for a ARM parameters JSON file (e.g. `azuredeploy.parameters.json`). The values in the parameters JSON fill will be used in place of values set in the template
 
 ## Resource Filters
+
 The view can sometimes get very crowded, especially when you have many resources of the same time (e.g. NSG rules or Key Vault secrets). Click the 'Filter' toolbar button to apply a filter to the view. You will be prompted for a input string:
-- This is a comma separated list of resource types you want *removed from the view*.
+
+- This is a comma separated list of resource types you want _removed from the view_.
 - A partial substring of the type can be used, e.g. `secrets` or `vaults/secrets` or `microsoft.keyvault/vaults/secrets`.
 - Case does not matter.
 - Entering an empty string will remove the filter.
 
 ## Linked Templates
+
 The extension will attempt to locate and display linked templates, these resources will be shown grouped together in a shaded box. Linked template support comes with many limitations. This is an outline of how it works:
+
 - If the resolved linked template URL is externally accessible, it will be downloaded and used. Results are cached to stop excessive HTTP calls.
-- If the URL is not accessible, then an attempt is made to load the file locally based on a guess from the filename and parent dir extracted from the URL, e.g. `nested/linked.json` 
+- If the URL is not accessible, then an attempt is made to load the file locally based on a guess from the filename and parent dir extracted from the URL, e.g. `nested/linked.json`
 - If that fails, then the local filesystem of the VS Code workspace will be searched for the file. Some assumptions are made in this search:
-  - The search will only happen if the linked file has a *different* filename from the main/master template being viewed. Otherwise the search would just find the main template being viewed.
+  - The search will only happen if the linked file has a _different_ filename from the main/master template being viewed. Otherwise the search would just find the main template being viewed.
   - The linked template file should located somewhere under the path of the main template, sub-folders will be searched. If the file resides elsewhere outside this path it will not be located.
   - The first matching file will be used.
 - If linked template URL or filename is dynamic based on template parameters it is very likely not to resolve, and will not be found.
@@ -66,19 +75,22 @@ The extension will attempt to locate and display linked templates, these resourc
 - The layout of the icons/resources can initially be a bit strange, and will require some manual tidy up to look good. I'm investigating how to improve this.
 
 # Notes
+
 This project was created as a learning exercise, but was heavily inspired & influenced by the old ARMViz tool. ARMViz sadly seems to have been abandoned, it often has problems displaying some templates. Personally I wasn't a fan of look of the output, and found it hard to read. These are a few of the reasons why I created this project
 
 A new based version based on the same code as this VS Code extension, can be found here: https://github.com/benc-uk/armview-web
 
 ## ARM Template JSON Support
+
 ARM templates go outside the JSON specification and break it in a couple of areas:
+
 - Support for comments in the JSON file (aka JSONC)
 - Allowing the use of multi-line strings
-The extension supports both of these as far as is reasonably possible, multi-line strings in particular has no known spec on how it should be supported. The extension is also aware of the language server provided by the 'Azure Resource Manager Tools' extension and will accept files set to 'arm-template' as the language type. 
+  The extension supports both of these as far as is reasonably possible, multi-line strings in particular has no known spec on how it should be supported. The extension is also aware of the language server provided by the 'Azure Resource Manager Tools' extension and will accept files set to 'arm-template' as the language type.
 
+## Limitations & Known Issues
 
-## Limitations & Known Issues 
-- The code attempts to find the links (`dependsOn` relationships) between ARM resources, however due to the *many* subtle and complex ways these relationships can be defined & expressed, certain links may not be picked up & displayed. Oct 2020 - Parsing for nested resources has been improved.
+- The code attempts to find the links (`dependsOn` relationships) between ARM resources, however due to the _many_ subtle and complex ways these relationships can be defined & expressed, certain links may not be picked up & displayed. Oct 2020 - Parsing for nested resources has been improved.
 - Icons for the most commonly used & popular resource types have been added, however not every resource is covered (There's simply too many and no canonical source). The default ARM cube icon will be shown as a fallback. Get in touch if you want a icon added for a particular resource type.
 - Resolving names & other properties for resources is attempted, but due to programmatic way these are generally defined with ARM functions and expressions, full name resolution is not always possible.
 - Templates using the loop functions `copy` & `copyIndex` to create multiple resources will not be rendered correctly due to limitations on evaluating the dynamic iterative state of the template.

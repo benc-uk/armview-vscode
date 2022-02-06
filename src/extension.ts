@@ -200,7 +200,7 @@ async function pickParamsFile(): Promise<any> {
     const paramFile = await vscode.window.showOpenDialog({
       canSelectMany: false,
       defaultUri: vscode.Uri.file(wsLocalDir),
-      filters: { JSON: ['json'] },
+      filters: { JSON: ['json', 'jsonc'] },
     })
 
     if (paramFile) {
@@ -267,7 +267,7 @@ async function refreshView(): Promise<any>  {
       })
       panel.webview.postMessage({ command: 'newData', payload: result })
       panel.webview.postMessage({ command: 'resCount', payload: result.length.toString() })
-    } catch (err) {
+    } catch (err: any) {
       // Disable logging and telemetry for now
       // console.log('### ArmView: ERROR STACK: ' + err.stack)
       // reporter.sendTelemetryEvent('parseError', {'error': err, 'filename': editor.document.fileName});

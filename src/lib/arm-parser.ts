@@ -208,7 +208,7 @@ export default class ARMParser {
         if (res.resources) {
           this.preProcess(res.resources, res)
         }
-      } catch (err) {
+      } catch (err: any) {
         this.error = err // `Unable to pre-process ARM resources, template is probably invalid. ${ex}`
       }
     })
@@ -548,7 +548,7 @@ export default class ARMParser {
         if (res.resources) {
           await this.processResources(res.resources)
         }
-      } catch (err) {
+      } catch (err: any) {
         this.error = err
       }
     } // end for

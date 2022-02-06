@@ -1,130 +1,130 @@
 {
-	"name": "armview",
-	"displayName": "ARM Template Viewer",
-	"description": "Graphically display ARM templates in an interactive map view",
-	"version": "0.4.5",
-	"icon": "assets/img/icons/main.png",
-	"publisher": "bencoleman",
-	"author": {
-		"name": "Ben Coleman",
-		"email": "ben.coleman@microsoft.com"
-	},
-	"keywords": [
-		"arm",
-		"template",
-		"preview",
-		"visualizer",
-		"map",
-		"viewer",
-		"azure"
-	],
-	"engines": {
-		"vscode": "^1.30.0"
-	},
-	"categories": [
-		"Programming Languages",
-		"Linters",
-		"Formatters",
-		"Other",
-		"Azure"
-	],
-	"activationEvents": [
-		"onCommand:armView.start"
-	],
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/benc-uk/armview-vscode"
-	},
-	"main": "./out/extension.js",
-	"contributes": {
-		"commands": [
-			{
-				"command": "armView.start",
-				"title": "Preview ARM file graphically",
-				"category": "ARM Viewer",
-				"icon": {
-					"light": "./assets/img/icons/eye-light.svg",
-					"dark": "./assets/img/icons/eye-dark.svg"
-				}
-			}
-		],
-		"configuration": {
-			"title": "ARM Template Viewer",
-			"properties": {
-				"armView.iconTheme": {
-					"type": "string",
-					"enum": [
-						"original"
-					],
-					"default": "original",
-					"description": "Icon theme to use when displaying resources"
-				},
-				"armView.linkedUrlCacheTime": {
-					"type": "integer",
-					"default": 120,
-					"description": "Number of seconds to cache any external URLs when fetching linked templates"
-				}
-			}
-		},
-		"menus": {
-			"editor/title": [
-				{
-					"command": "armView.start",
-					"when": "editorLangId == json || editorLangId == arm-template",
-					"group": "navigation"
-				}
-			],
-			"editor/title/context": [
-				{
-					"command": "armView.start",
-					"when": "editorLangId == json || editorLangId == arm-template",
-					"group": "navigation"
-				}
-			],
-			"commandPalette": [
-				{
-					"command": "armView.start",
-					"when": "editorLangId == json || editorLangId == arm-template",
-					"group": "navigation"
-				}
-			]
-		},
-		"keybindings": [
-			{
-				"command": "armView.start",
-				"key": "ctrl+alt+q",
-				"mac": "cmd+alt+q",
-				"when": "editorLangId == json || editorLangId == arm-template"
-			}
-		]
-	},
-	"scripts": {
-		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
-		"lint": "eslint --ext .ts assets/js/main.js src",
-		"watch": "tsc -w -p ./",
-		"test": "mocha --timeout 10000 test/reference.test.js",
-		"test-qs": "mocha --timeout 20000 test/quickstart.test.js"
-	},
-	"dependencies": {
-		"isomorphic-fetch": "^3.0.0",
-		"jsonc-parser": "^2.3.1",
-		"node-cache": "^5.1.2",
-		"uuid": "^8.3.1",
-		"vscode-extension-telemetry": "^0.1.6"
-	},
-	"devDependencies": {
-		"@types/uuid": "^8.3.0",
-		"@types/mocha": "^8.0.3",
-		"@types/node": "^14.14.0",
-		"@types/vscode": "^1.30.0",
-		"@typescript-eslint/eslint-plugin": "^4.5.0",
-		"@typescript-eslint/parser": "^4.5.0",
-		"chai": "^4.2.0",
-		"chai-subset": "^1.6.0",
-		"eslint": "^7.11.0",
-		"mocha": "^8.2.0",
-		"ts-loader": "^8.0.6",
-		"typescript": "^4.0.3"
-	}
+  "name": "armview",
+  "displayName": "ARM Template Viewer",
+  "description": "Graphically display ARM templates in an interactive map view",
+  "version": "0.4.6",
+  "icon": "assets/img/icons/main.png",
+  "publisher": "bencoleman",
+  "author": {
+    "name": "Ben Coleman",
+    "email": "ben.coleman@microsoft.com"
+  },
+  "keywords": [
+    "arm",
+    "template",
+    "preview",
+    "visualizer",
+    "map",
+    "viewer",
+    "azure"
+  ],
+  "engines": {
+    "vscode": "^1.30.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Formatters",
+    "Other",
+    "Azure"
+  ],
+  "activationEvents": [
+    "onCommand:armView.start"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/benc-uk/armview-vscode"
+  },
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "armView.start",
+        "title": "Preview ARM file graphically",
+        "category": "ARM Viewer",
+        "icon": {
+          "light": "./assets/img/icons/eye-light.svg",
+          "dark": "./assets/img/icons/eye-dark.svg"
+        }
+      }
+    ],
+    "configuration": {
+      "title": "ARM Template Viewer",
+      "properties": {
+        "armView.iconTheme": {
+          "type": "string",
+          "enum": [
+            "original"
+          ],
+          "default": "original",
+          "description": "Icon theme to use when displaying resources"
+        },
+        "armView.linkedUrlCacheTime": {
+          "type": "integer",
+          "default": 120,
+          "description": "Number of seconds to cache any external URLs when fetching linked templates"
+        }
+      }
+    },
+    "menus": {
+      "editor/title": [
+        {
+          "command": "armView.start",
+          "when": "editorLangId == json || editorLangId == arm-template",
+          "group": "navigation"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "armView.start",
+          "when": "editorLangId == json || editorLangId == arm-template",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "armView.start",
+          "when": "editorLangId == json || editorLangId == arm-template",
+          "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "armView.start",
+        "key": "ctrl+alt+q",
+        "mac": "cmd+alt+q",
+        "when": "editorLangId == json || editorLangId == arm-template"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "lint": "eslint --ext .ts assets/js/main.js src",
+    "watch": "tsc -w -p ./",
+    "test": "mocha --timeout 10000 test/reference.test.js",
+    "test-qs": "mocha --timeout 20000 test/quickstart.test.js"
+  },
+  "dependencies": {
+    "isomorphic-fetch": "^3.0.0",
+    "jsonc-parser": "^3.0.0",
+    "node-cache": "^5.1.2",
+    "uuid": "^8.3.2",
+    "vscode-extension-telemetry": "^0.1.6"
+  },
+  "devDependencies": {
+    "@types/uuid": "^8.3.4",
+    "@types/mocha": "^9.1.0",
+    "@types/node": "^17.0.15",
+    "@types/vscode": "^1.64.0",
+    "@typescript-eslint/eslint-plugin": "^5.10.2",
+    "@typescript-eslint/parser": "^5.10.2",
+    "chai": "^4.3.6",
+    "chai-subset": "^1.6.0",
+    "eslint": "^8.8.0",
+    "mocha": "^9.2.0",
+    "ts-loader": "^9.2.6",
+    "typescript": "^4.5.5"
+  }
 }
