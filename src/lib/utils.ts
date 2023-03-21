@@ -51,3 +51,6 @@ export function timeoutPromise<T>(ms: number, promise: Promise<T>, msg?: string)
     )
   })
 }
+
+// magic: https://stackoverflow.com/questions/47797207/find-replace-line-breaks-between-double-quotes
+export const removeMultiLines = (content: string) => content.replace(/"[^"]*(?:""[^"]*)*"/g, function(c) { return c.replace(/\n/g, ''); });

@@ -109,27 +109,7 @@ export default class ARMParser {
     // ARM also allows for multi-line strings, which is AWFUL
     // This is a crude attempt to cope with them by simply stripping the newlines if we find any
     // Find all strings in double quotes (thankfully JSON only allows double quotes)
-    const re = /(".*?")/gims
-    let match
-    // tslint:disable: no-conditional-assignment
-    while ((match = re.exec(content)) != null) {
-      const stringVal = match[1]
-      // Only work on strings that include a newline (or \n\r)
-      if (stringVal.includes('\n')) {
-        console.log(`### ArmView: Found a multi-line string in your template at offset ${match.index}. Attempting to rectify to valid JSON`)
-
-        // Mangle the content ripping the matched string out
-        const front = content.substr(0, match.index)
-        const back = content.substr(match.index + stringVal.length, content.length)
-        // Brute force removal!
-        // We preserve whitespace, but not sure if it's correct. We're outside the JSON spec!
-        let cleanString = stringVal.replace(/\n/g, '') // string.replace(/\s*\n\s*/g, ' ')
-        cleanString = cleanString.replace(/\r/g, '')
-
-        // Glue it back together
-        content = front + cleanString + back
-      }
-    }
+    content = utils.removeMultiLines(content);
 
     // Switched to Microsoft jsonc-parser
     const errors: JSONCparser.ParseError[] = []
