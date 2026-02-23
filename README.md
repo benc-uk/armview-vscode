@@ -6,6 +6,12 @@ You can drag and move icons as you wish, zoom in and out with the mouse wheel an
 
 Extension as been tested successfully against all 900+ [Azure Quickstart Templates](https://github.com/Azure/azure-quickstart-templates) 😁
 
+## 2026 - Time For Bed 💤
+
+This project and codebase is now considered unmaintained and frozen 😔 I see almost no use of ARM JSON templates today and the overhead of maintaining this code is too much given the near zero benefits. I strongly advise you switch to [Bicep](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-bicep)
+
+---
+
 ![s1](assets/readme/screen1.png)
 
 ![s2](assets/readme/screen2.png)
